@@ -404,6 +404,30 @@ function draw() {
   blobPath();
   ctx.stroke();
 
+  /* 5b. БЛИКИ В МЕСТАХ УДАРА — световые вспышки на поверхности сгустка */
+  for (var bi = 0; bi < impAng.length; bi++) {
+    var o2 = impAng[bi];
+    var bx = cx + Math.cos(o2.a) * R * 0.97;
+    var by = cy + Math.sin(o2.a) * R * 0.97;
+    var br = R * (0.09 + 0.17 * o2.s);
+    var depth = 0.40 + 0.60 * o2.f;   /* ближе к зрителю — ярче */
+    var bgr = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+    bgr.addColorStop(0, 'rgba(255,255,255,' + (0.60 * o2.s * depth).toFixed(3) + ')');
+    bgr.addColorStop(0.30, 'rgba(200,236,255,' + (0.34 * o2.s * depth).toFixed(3) + ')');
+    bgr.addColorStop(0.65, 'rgba(150,205,255,' + (0.14 * o2.s * depth).toFixed(3) + ')');
+    bgr.addColorStop(1, 'rgba(140,200,255,0)');
+    ctx.fillStyle = bgr;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, TAU);
+    ctx.fill();
+    /* тонкий световой штрих по оболочке в точке удара */
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 0.985, o2.a - 0.20, o2.a + 0.20);
+    ctx.strokeStyle = 'rgba(235,250,255,' + (0.42 * o2.s * depth).toFixed(3) + ')';
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  }
+
   /* 6. блик — крутится вместе со сгустком */
   var k0 = Math.floor(SEG * (0.55 + 0.10 * Math.sin(rotY)));
   var k1 = k0 + Math.floor(SEG * 0.22);
