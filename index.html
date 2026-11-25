@@ -389,6 +389,8 @@ document.getElementById('micStart').addEventListener('click', function () {
     setTimeout(function () { startEl.style.display = 'none'; }, 450);
     liveEl.classList.add('show');
     t = 0; lastVoice = 0; smoothLevel = 0;
+    impacts.length = 0;
+    for (var q = 0; q < N; q++) { pts[q].r = pts[q].rest; pts[q].v = 0; }
     resize();
     setTimeout(resize, 120);
   });
