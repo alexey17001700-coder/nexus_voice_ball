@@ -123,7 +123,7 @@ function addImpact(x, y, z, s) {
   for (var i = 0; i < impacts.length; i++) {
     var im = impacts[i];
     if (im.x * x + im.y * y + im.z * z > 0.88) {
-      im.s = Math.min(1.8, im.s + s * 0.6);
+      im.s = Math.min(1.0, im.s + s * 0.35);
       return;
     }
   }
