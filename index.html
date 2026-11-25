@@ -162,14 +162,23 @@ function render() {
   level = raw;
   smoothLevel += (level - smoothLevel) * 0.18;
 
-  // имитация «ИИ говорит» — плавная волна, если пользователь молчит
+  // логика состояний: слушаем, ждём 5 сек тишины, потом «отвечаем»
   let drive = smoothLevel;
-  if (drive < 0.06) {
-    const fake = (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.28 + Math.sin(t * 5.7) * 0.05;
-    drive = Math.max(0, fake);
-    state = 'speak';
-  } else {
+  if (smoothLevel > 0.06) {
+    lastVoice = t;                 // слышим голос — сбрасываем таймер
     state = 'listen';
+  } else {
+    const silence = t - lastVoice;
+    if (silence < SILENCE_WAIT) {
+      // ещё слушаем — шар спокойно «дышит» и ждёт продолжения
+      drive = Math.max(0, 0.05 + Math.sin(t * 1.6) * 0.03);
+      state = 'listen';
+    } else {
+      // тишина дольше 5 сек — ИИ «отвечает»
+      const fake = (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.28 + Math.sin(t * 5.7) * 0.05;
+      drive = Math.max(0, fake);
+      state = 'speak';
+    }
   }
 
   // статус
