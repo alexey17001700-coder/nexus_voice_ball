@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nexus — Живое общение</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; overflow:hidden; background:#05060c; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; }
+
+  /* ===== СТАРТОВЫЙ ЭКРАН ===== */
+  #start {
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:38px;
+    background:radial-gradient(circle at 50% 40%, #0d1430 0%, #05060c 70%);
+    z-index:10; transition:opacity .45s ease;
+  }
+  #start h1 { color:#7fa8ff; font-size:20px; font-weight:600; letter-spacing:3px; text-transform:uppercase; opacity:.85; }
+  #start p { color:#3d4a6b; font-size:13px; letter-spacing:1px; }
+
+  .mic-btn {
+    width:130px; height:130px; border-radius:50%; border:none; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #2b6bff, #0a2a8a 70%);
+    box-shadow:0 0 40px rgba(43,107,255,.55), 0 0 90px rgba(43,107,255,.25), inset 0 0 30px rgba(120,180,255,.35);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .18s ease, box-shadow .3s ease;
+    animation:pulse 2.6s ease-in-out infinite;
+  }
+  .mic-btn:active { transform:scale(.93); }
+  .mic-btn svg { width:52px; height:52px; fill:#dce8ff; }
+  @keyframes pulse {
+    0%,100% { box-shadow:0 0 40px rgba(43,107,255,.55), 0 0 90px rgba(43,107,255,.25), inset 0 0 30px rgba(120,180,255,.35); }
+    50%     { box-shadow:0 0 55px rgba(43,107,255,.85), 0 0 120px rgba(43,107,255,.4), inset 0 0 40px rgba(150,200,255,.5); }
+  }
+
+  /* ===== ОКНО ЖИВОГО РЕЖИМА ===== */
+  #live {
+    position:fixed; inset:0; z-index:20; display:none;
+    background:radial-gradient(circle at 50% 45%, #0a1030 0%, #04050a 75%);
+  }
+  #live.show { display:block; animation:fadeIn .5s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  #ball { position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  #status {
+    position:absolute; top:8%; left:0; right:0; text-align:center;
+    color:#6f8fd6; font-size:14px; letter-spacing:4px; text-transform:uppercase;
+    opacity:.7; transition:opacity .3s ease; pointer-events:none;
+  }
+
+  #back {
+    position:absolute; bottom:38px; left:50%; transform:translateX(-50%);
+    padding:14px 42px; border-radius:40px; border:1px solid rgba(110,150,255,.35);
+    background:rgba(20,32,70,.55); backdrop-filter:blur(12px);
+    color:#a8c2ff; font-size:15px; letter-spacing:2px; cursor:pointer;
+    display:flex; align-items:center; gap:10px;
+    transition:background .2s ease, transform .15s ease;
+  }
+  #back:active { transform:translateX(-50%) scale(.95); background:rgba(30,48,100,.8); }
+  #back svg { width:18px; height:18px; fill:#a8c2ff; }
+
+  #hint {
+    position:absolute; bottom:110px; left:0; right:0; text-align:center;
+    color:#3a4a72; font-size:12px; letter-spacing:1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- СТАРТ -->
+<div id="start">
+  <h1>Nexus</h1>
+  <button class="mic-btn" id="micStart" aria-label="Живое общение">
+    <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+  </button>
+  <p>нажми микрофон — живое общение</p>
+</div>
+
+<!-- ЖИВОЙ РЕЖИМ -->
+<div id="live">
+  <canvas id="ball"></canvas>
+  <div id="status">слушаю</div>
+  <div id="hint">говори — шар отзовётся на голос</div>
+  <button id="back">
+    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    назад
+  </button>
+</div>
+
+<script>
+/* ================= 3D ШАР НА CANVAS ================= */
+const canvas = document.getElementById('ball');
+const ctx = canvas.getContext('2d');
+let W, H, DPR;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = canvas.clientWidth; H = canvas.clientHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+/* --- точки на сфере (спираль Фибоначчи) --- */
+const N = 900;
+const pts = [];
+const GA = Math.PI * (3 - Math.sqrt(5));
+for (let i = 0; i < N; i++) {
+  const y = 1 - (i / (N - 1)) * 2;
+  const r = Math.sqrt(1 - y * y);
+  const th = GA * i;
+  pts.push({ x: Math.cos(th) * r, y: y, z: Math.sin(th) * r, base: 1 });
+}
+
+/* --- аудио --- */
+let analyser = null, dataArr = null, audioCtx = null, stream = null;
+let level = 0;            // 0..1 громкость голоса
+let smoothLevel = 0;
+let speaking = false;     // ИИ «говорит» (демо-имитация)
+let state = 'idle';       // idle | listen | speak
+
+async function startMic() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true }
+    });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.75;
+    src.connect(analyser);
+    dataArr = new Uint8Array(analyser.frequencyBinCount);
+  } catch (e) {
+    // нет доступа к микрофону — шар работает в демо-режиме
+    analyser = null;
+  }
+}
+
+function readLevel() {
+  if (!analyser) return 0;
+  analyser.getByteFrequencyData(dataArr);
+  let sum = 0;
+  for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
+  return Math.min(1, (sum / dataArr.length) / 90);
+}
+
+/* ================= РЕНДЕР ================= */
+let t = 0;
+let rotY = 0, rotX = 0;
+
+function render() {
+  requestAnimationFrame(render);
+  if (!canvas.clientWidth) return;
+  t += 0.016;
+
+  // уровень звука
+  const raw = readLevel();
+  level = raw;
+  smoothLevel += (level - smoothLevel) * 0.18;
+
+  // имитация «ИИ говорит» — плавная волна, если пользователь молчит
+  let drive = smoothLevel;
+  if (drive < 0.06) {
+    const fake = (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.28 + Math.sin(t * 5.7) * 0.05;
+    drive = Math.max(0, fake);
+    state = 'speak';
+  } else {
+    state = 'listen';
+  }
+
+  // статус
+  const st = document.getElementById('status');
+  st.textContent = state === 'listen' ? 'слушаю вас' : 'отвечаю';
+
+  rotY += 0.004 + drive * 0.02;
+  rotX = Math.sin(t * 0.35) * 0.35;
+
+  const cx = W / 2, cy = H / 2;
+  const baseR = Math.min(W, H) * 0.24;
+  const R = baseR * (1 + drive * 0.42);
+
+  ctx.clearRect(0, 0, W, H);
+
+  // свечение позади
+  const glow = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 2.4);
+  const gInt = 0.10 + drive * 0.30;
+  glow.addColorStop(0, `rgba(70,130,255,${gInt})`);
+  glow.addColorStop(0.5, `rgba(40,80,200,${gInt * 0.4})`);
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // проекция точек
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const focal = 3.2;
+
+  const proj = [];
+  for (let i = 0; i < N; i++) {
+    const p = pts[i];
+    // деформация от звука — «дышит» и колышется
+    const wob = 1 + drive * 0.55 * Math.sin(t * 6 + i * 0.35) + drive * 0.25 * Math.sin(t * 11 + i * 0.9);
+    let x = p.x * wob, y = p.y * wob, z = p.z * wob;
+
+    // вращение Y
+    let x1 = x * cosY - z * sinY;
+    let z1 = x * sinY + z * cosY;
+    // вращение X
+    let y1 = y * cosX - z1 * sinX;
+    let z2 = y * sinX + z1 * cosX;
+
+    const scale = focal / (focal + z2);
+    proj.push({
+      X: cx + x1 * R * scale,
+      Y: cy + y1 * R * scale,
+      s: scale,
+      z: z2,
+      i
+    });
+  }
+
+  // рисуем от дальних к ближним
+  proj.sort((a, b) => b.z - a.z);
+
+  for (let k = 0; k < proj.length; k++) {
+    const p = proj[k];
+    const depth = (1 - (p.z + 1) / 2);          // 0 дальний .. 1 ближний
+    const alpha = 0.12 + depth * 0.75;
+    const size = (0.7 + depth * 1.9) * (1 + drive * 0.5);
+
+    // цвет: от глубокого синего к яркому голубому/белому
+    const r = Math.round(60 + depth * 120 + drive * 60);
+    const g = Math.round(120 + depth * 110 + drive * 40);
+    const b = 255;
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.beginPath();
+    ctx.arc(p.X, p.Y, size, 0, 6.2832);
+    ctx.fill();
+  }
+
+  // ядро
+  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.55);
+  core.addColorStop(0, `rgba(180,215,255,${0.35 + drive * 0.4})`);
+  core.addColorStop(1, 'rgba(60,120,255,0)');
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R * 0.55, 0, 6.2832);
+  ctx.fill();
+}
+
+/* ================= УПРАВЛЕНИЕ ЭКРАНАМИ ================= */
+const startEl = document.getElementById('start');
+const liveEl = document.getElementById('live');
+
+document.getElementById('micStart').addEventListener('click', async () => {
+  await startMic();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  startEl.style.opacity = '0';
+  setTimeout(() => { startEl.style.display = 'none'; }, 450);
+  liveEl.classList.add('show');
+  resize();
+});
+
+document.getElementById('back').addEventListener('click', () => {
+  liveEl.classList.remove('show');
+  startEl.style.display = 'flex';
+  requestAnimationFrame(() => { startEl.style.opacity = '1'; });
+  if (stream) { stream.getTracks().forEach(tr => tr.stop()); stream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; analyser = null; }
+});
+
+resize();
+render();
+</script>
+</body>
+</html>
