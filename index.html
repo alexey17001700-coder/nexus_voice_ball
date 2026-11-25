@@ -236,7 +236,7 @@ function draw() {
 
   var cx = W / 2, cy = H / 2;
   var baseR = Math.min(W, H) * 0.30;
-  var R = baseR * (1 + drive * 0.14);
+  var R = baseR; /* размер пузыря не меняется вообще */
 
   /* --- физика: точки бьются о мягкую оболочку и не вылетают --- */
   for (var i = 0; i < N; i++) {
