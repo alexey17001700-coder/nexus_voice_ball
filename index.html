@@ -274,7 +274,7 @@ function draw() {
 
   /* --- затухание ударов --- */
   for (var m = impacts.length - 1; m >= 0; m--) {
-    impacts[m].s *= 0.90;
+    impacts[m].s *= 0.87;
     if (impacts[m].s < 0.03) impacts.splice(m, 1);
   }
 
