@@ -403,8 +403,8 @@ function draw() {
     if (bp.s < 0.05) continue;
     var bR = R * (0.10 + 0.22 * bp.s);
     var bg2 = ctx.createRadialGradient(bp.px, bp.py, 0, bp.px, bp.py, bR);
-    bg2.addColorStop(0, 'rgba(240,252,255,' + (0.52 * bp.s).toFixed(3) + ')');
-    bg2.addColorStop(0.35, 'rgba(190,235,255,' + (0.24 * bp.s).toFixed(3) + ')');
+    bg2.addColorStop(0, 'rgba(240,252,255,' + (0.24 * bp.s).toFixed(3) + ')');
+    bg2.addColorStop(0.35, 'rgba(190,235,255,' + (0.14 * bp.s).toFixed(3) + ')');
     bg2.addColorStop(1, 'rgba(160,215,255,0)');
     ctx.fillStyle = bg2;
     ctx.beginPath();
