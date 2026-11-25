@@ -189,7 +189,7 @@ function blobRadius(th) {
   for (var i = 0; i < impAng.length; i++) {
     var o = impAng[i];
     var d = Math.cos(th - o.a);
-    r += o.s * 0.22 * Math.exp(-2.4 * (1 - d)) * (0.40 + 0.60 * o.f);
+    r += o.s * 0.26 * Math.exp(-3.4 * (1 - d)) * (0.40 + 0.60 * o.f);
   }
   return r;
 }
