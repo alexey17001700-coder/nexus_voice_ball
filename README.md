@@ -1,2 +1,2 @@
-# nexus_voice_ball
+# wlupidol_voice_ball
 Демо: живой режим — 3D-шар, реагирующий на голос
