@@ -328,10 +328,10 @@ function draw() {
   /* 4b. поверхность воды — волны плещутся, края растворяются без границ */
   var tilt = Math.sin(rotY) * 0.13;
   for (var wv = 0; wv < 9; wv++) {
-    var wa2 = (0.085 + drive * 0.16) * (1 - Math.abs(wv - 4) / 7);
+    var wa2 = 0.085 * (1 - Math.abs(wv - 4) / 7);
     if (wa2 < 0.010) continue;
     var baseY = cy + R * (-0.95 + wv * 0.235);
-    var amp = R * (0.028 + drive * 0.062) * (0.55 + 0.45 * Math.sin(wv * 1.7 + t * 0.5));
+    var amp = R * 0.028 * (0.55 + 0.45 * Math.sin(wv * 1.7 + t * 0.5));
     var spd = 0.9 + wv * 0.18;
     var seg = 34;
     var lg = ctx.createLinearGradient(cx - R, 0, cx + R, 0);
