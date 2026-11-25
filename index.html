@@ -267,7 +267,7 @@ function draw() {
       p.r = 1.0;
       var hit = Math.abs(p.v);
       p.v = -hit * 0.55;
-      if (hit > 0.30) addImpact(p.x, p.y, p.z, Math.min(1.6, hit * 0.85));
+      if (hit > 0.35) addImpact(p.x, p.y, p.z, Math.min(0.9, hit * 0.5));
     }
     if (p.r < 0.22) { p.r = 0.22; p.v = Math.abs(p.v) * 0.4; }
   }
