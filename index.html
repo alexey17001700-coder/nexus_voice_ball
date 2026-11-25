@@ -275,7 +275,13 @@ function draw() {
   for (var m2 = 0; m2 < impacts.length; m2++) {
     var im = impacts[m2];
     rotPoint(im.x, im.y, im.z);
-    impAng.push({ a: Math.atan2(sc[1], sc[0]), f: (1 - sc[2]) / 2, s: im.s });
+    var angI = Math.atan2(sc[1], sc[0]);
+    var rrI = R * blobRadius(angI) * 0.90;
+    impAng.push({
+      a: angI, f: (1 - sc[2]) / 2, s: im.s,
+      px: cx + Math.cos(angI) * rrI,
+      py: cy + Math.sin(angI) * rrI
+    });
   }
 
   ctx.clearRect(0, 0, W, H);
