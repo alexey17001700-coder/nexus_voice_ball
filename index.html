@@ -234,7 +234,7 @@ function draw() {
 
   statusEl.textContent = state === 'listen' ? 'слушаю вас' : 'отвечаю';
 
-  rotY += 0.005 + drive * 0.02;
+  rotY += 0.010 + drive * 0.022;
   rotX = Math.sin(t * 0.35) * 0.35;
   cosY = Math.cos(rotY); sinY = Math.sin(rotY);
   cosX = Math.cos(rotX); sinX = Math.sin(rotX);
