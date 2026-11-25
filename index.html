@@ -190,7 +190,7 @@ function blobRadius(th) {
   for (var i = 0; i < impAng.length; i++) {
     var o = impAng[i];
     var d = Math.cos(th - o.a);
-    r += o.s * 0.24 * Math.exp(-9.5 * (1 - d)) * (0.40 + 0.60 * o.f);
+    r += o.s * 0.28 * Math.exp(-9.5 * (1 - d)) * (0.40 + 0.60 * o.f);
   }
   /* бегущая рябь по поверхности — в среднем ноль, размер не меняет */
   r += Math.sin(th * 5 + t * 1.6) * 0.020;
