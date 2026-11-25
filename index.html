@@ -8,7 +8,6 @@
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; overflow:hidden; background:#05060c; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; }
 
-  /* ===== СТАРТОВЫЙ ЭКРАН ===== */
   #start {
     position:fixed; inset:0; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:38px;
@@ -33,7 +32,6 @@
     50%     { box-shadow:0 0 55px rgba(43,107,255,.85), 0 0 120px rgba(43,107,255,.4), inset 0 0 40px rgba(150,200,255,.5); }
   }
 
-  /* ===== ОКНО ЖИВОГО РЕЖИМА ===== */
   #live {
     position:fixed; inset:0; z-index:20; display:none;
     background:radial-gradient(circle at 50% 45%, #0a1030 0%, #04050a 75%);
@@ -46,7 +44,7 @@
   #status {
     position:absolute; top:8%; left:0; right:0; text-align:center;
     color:#6f8fd6; font-size:14px; letter-spacing:4px; text-transform:uppercase;
-    opacity:.7; transition:opacity .3s ease; pointer-events:none;
+    opacity:.75; pointer-events:none;
   }
 
   #back {
@@ -68,7 +66,6 @@
 </head>
 <body>
 
-<!-- СТАРТ -->
 <div id="start">
   <h1>Nexus</h1>
   <button class="mic-btn" id="micStart" aria-label="Живое общение">
@@ -77,7 +74,6 @@
   <p>нажми микрофон — живое общение</p>
 </div>
 
-<!-- ЖИВОЙ РЕЖИМ -->
 <div id="live">
   <canvas id="ball"></canvas>
   <div id="status">слушаю</div>
@@ -89,36 +85,75 @@
 </div>
 
 <script>
-/* ================= 3D ШАР НА CANVAS ================= */
+/* ================= КАНВАС ================= */
 const canvas = document.getElementById('ball');
 const ctx = canvas.getContext('2d');
-let W, H, DPR;
+const statusEl = document.getElementById('status');
+let W = 0, H = 0, DPR = 1;
+
+/* --- спрайты (рисуем один раз, потом только drawImage — быстро) --- */
+function makeSprite(size, stops) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  for (const s of stops) grd.addColorStop(s[0], s[1]);
+  g.fillStyle = grd;
+  g.fillRect(0, 0, size, size);
+  return c;
+}
+
+let spGlow, spShell, spCore, spFog = [];
+
+function buildSprites() {
+  spGlow = makeSprite(256, [
+    [0,   'rgba(70,130,255,1)'],
+    [0.5, 'rgba(40,80,200,0.42)'],
+    [1,   'rgba(0,0,0,0)']
+  ]);
+  spShell = makeSprite(256, [
+    [0,    'rgba(205,228,255,0.10)'],
+    [0.70, 'rgba(90,150,255,0.05)'],
+    [0.92, 'rgba(165,205,255,0.18)'],
+    [1,    'rgba(120,170,255,0)']
+  ]);
+  spCore = makeSprite(256, [
+    [0, 'rgba(180,215,255,1)'],
+    [1, 'rgba(60,120,255,0)']
+  ]);
+  spFog = [
+    makeSprite(256, [[0,'rgba(110,170,255,0.95)'],[1,'rgba(110,170,255,0)']]),
+    makeSprite(256, [[0,'rgba(120,220,255,0.95)'],[1,'rgba(120,220,255,0)']]),
+    makeSprite(256, [[0,'rgba(170,140,255,0.95)'],[1,'rgba(170,140,255,0)']])
+  ];
+}
 
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = canvas.clientWidth; H = canvas.clientHeight;
-  canvas.width = W * DPR; canvas.height = H * DPR;
+  W = canvas.clientWidth || window.innerWidth;
+  H = canvas.clientHeight || window.innerHeight;
+  canvas.width  = Math.max(1, Math.round(W * DPR));
+  canvas.height = Math.max(1, Math.round(H * DPR));
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  buildSprites();
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 /* --- точки на сфере (спираль Фибоначчи) --- */
-const N = 900;
+const N = 820;
 const pts = [];
 const GA = Math.PI * (3 - Math.sqrt(5));
 for (let i = 0; i < N; i++) {
   const y = 1 - (i / (N - 1)) * 2;
-  const r = Math.sqrt(1 - y * y);
+  const r = Math.sqrt(Math.max(0, 1 - y * y));
   const th = GA * i;
-  pts.push({ x: Math.cos(th) * r, y: y, z: Math.sin(th) * r, base: 1 });
+  pts.push({ x: Math.cos(th) * r, y: y, z: Math.sin(th) * r });
 }
 
 /* --- аудио --- */
 let analyser = null, dataArr = null, audioCtx = null, stream = null;
-let level = 0;            // 0..1 громкость голоса
-let smoothLevel = 0;
-let speaking = false;     // ИИ «говорит» (демо-имитация)
-let state = 'idle';       // idle | listen | speak
+let smoothLevel = 0, state = 'idle';
 
 async function startMic() {
   try {
@@ -133,8 +168,7 @@ async function startMic() {
     src.connect(analyser);
     dataArr = new Uint8Array(analyser.frequencyBinCount);
   } catch (e) {
-    // нет доступа к микрофону — шар работает в демо-режиме
-    analyser = null;
+    analyser = null;   // нет микрофона — шар живёт в демо-режиме
   }
 }
 
@@ -143,47 +177,45 @@ function readLevel() {
   analyser.getByteFrequencyData(dataArr);
   let sum = 0;
   for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
-  return Math.min(1, (sum / dataArr.length) / 90);
+  return Math.min(1, (sum / dataArr.length) / 85);
 }
 
 /* ================= РЕНДЕР ================= */
-let t = 0;
-let rotY = 0, rotX = 0;
-let lastVoice = 0;          // время последнего голоса
-const SILENCE_WAIT = 5;     // секунд тишины, прежде чем ИИ «ответит»
+let t = 0, rotY = 0, rotX = 0, lastVoice = 0;
+const SILENCE_WAIT = 5;
+
+/* корзины по цвету и глубине — вместо 820 отдельных заливок */
+const HB = 14, DB = 4;
+const buckets = [];
+for (let i = 0; i < HB * DB; i++) buckets.push([]);
 
 function render() {
   requestAnimationFrame(render);
-  if (!canvas.clientWidth) return;
+  if (!W || !H) return;
   t += 0.016;
 
-  // уровень звука
   const raw = readLevel();
-  level = raw;
-  smoothLevel += (level - smoothLevel) * 0.18;
+  smoothLevel += (raw - smoothLevel) * 0.18;
 
-  // логика состояний: слушаем, ждём 5 сек тишины, потом «отвечаем»
-  let drive = smoothLevel;
+  let drive;
   if (smoothLevel > 0.06) {
-    lastVoice = t;                 // слышим голос — сбрасываем таймер
+    lastVoice = t;
     state = 'listen';
+    drive = smoothLevel;
   } else {
     const silence = t - lastVoice;
     if (silence < SILENCE_WAIT) {
-      // ещё слушаем — шар спокойно «дышит» и ждёт продолжения
-      drive = Math.max(0, 0.05 + Math.sin(t * 1.6) * 0.03);
       state = 'listen';
+      drive = 0.06 + Math.sin(t * 1.6) * 0.035;          // спокойно дышит, ждёт
     } else {
-      // тишина дольше 5 сек — ИИ «отвечает»
-      const fake = (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.28 + Math.sin(t * 5.7) * 0.05;
-      drive = Math.max(0, fake);
       state = 'speak';
+      const fake = (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.30 + Math.sin(t * 5.7) * 0.06;
+      drive = Math.max(0.02, fake);                       // имитация голоса ИИ
     }
   }
+  if (drive < 0) drive = 0;
 
-  // статус
-  const st = document.getElementById('status');
-  st.textContent = state === 'listen' ? 'слушаю вас' : 'отвечаю';
+  statusEl.textContent = state === 'listen' ? 'слушаю вас' : 'отвечаю';
 
   rotY += 0.004 + drive * 0.02;
   rotX = Math.sin(t * 0.35) * 0.35;
@@ -194,127 +226,115 @@ function render() {
 
   ctx.clearRect(0, 0, W, H);
 
-  // свечение позади
-  const glow = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 2.4);
+  /* свечение позади */
   const gInt = 0.10 + drive * 0.30;
-  glow.addColorStop(0, `rgba(70,130,255,${gInt})`);
-  glow.addColorStop(0.5, `rgba(40,80,200,${gInt * 0.4})`);
-  glow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = gInt;
+  ctx.drawImage(spGlow, cx - R * 2.4, cy - R * 2.4, R * 4.8, R * 4.8);
+  ctx.globalAlpha = 1;
 
-  // проекция точек
+  /* проекция точек */
   const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
   const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
   const focal = 3.2;
 
-  const proj = [];
+  for (let i = 0; i < buckets.length; i++) buckets[i].length = 0;
+
   for (let i = 0; i < N; i++) {
     const p = pts[i];
-    // деформация от звука — «дышит» и колышется
     const ph = i * 0.35;
     const wob = 1
-      + 0.045 * Math.sin(t * 1.4 + ph)            // «дыхание» даже в тишине
-      + 0.030 * Math.sin(t * 2.3 + ph * 1.7)
-      + drive * 0.80 * Math.sin(t * 7.5 + ph)     // живая реакция на голос
+      + 0.050 * Math.sin(t * 1.4 + ph)
+      + 0.032 * Math.sin(t * 2.3 + ph * 1.7)
+      + drive * 0.80 * Math.sin(t * 7.5 + ph)
       + drive * 0.42 * Math.sin(t * 13.0 + ph * 2.3)
       + drive * 0.20 * Math.sin(t * 21.0 + ph * 3.1);
-    let x = p.x * wob, y = p.y * wob, z = p.z * wob;
 
-    // вращение Y
-    let x1 = x * cosY - z * sinY;
-    let z1 = x * sinY + z * cosY;
-    // вращение X
-    let y1 = y * cosX - z1 * sinX;
-    let z2 = y * sinX + z1 * cosX;
+    const x = p.x * wob, y = p.y * wob, z = p.z * wob;
+
+    const x1 = x * cosY - z * sinY;
+    const z1 = x * sinY + z * cosY;
+    const y1 = y * cosX - z1 * sinX;
+    const z2 = y * sinX + z1 * cosX;
 
     const scale = focal / (focal + z2);
-    proj.push({
-      X: cx + x1 * R * scale,
-      Y: cy + y1 * R * scale,
-      s: scale,
-      z: z2,
-      i
-    });
+    const X = cx + x1 * R * scale;
+    const Y = cy + y1 * R * scale;
+
+    let depth = 1 - (z2 + 1) / 2;
+    if (depth < 0) depth = 0; else if (depth > 1) depth = 1;
+
+    let hue = 205 + Math.sin(t * 0.55 + depth * 1.4 + i * 0.004) * 60 + drive * 45;
+    hue = ((hue % 360) + 360) % 360;
+
+    const hb = Math.min(HB - 1, Math.floor(hue / 360 * HB));
+    const db = Math.min(DB - 1, Math.floor(depth * DB));
+    buckets[hb * DB + db].push(X, Y);
   }
 
-  // рисуем от дальних к ближним
-  proj.sort((a, b) => b.z - a.z);
+  /* рисуем корзинами — быстро и без сортировки */
+  for (let hb = 0; hb < HB; hb++) {
+    for (let db = 0; db < DB; db++) {
+      const arr = buckets[hb * DB + db];
+      if (!arr.length) continue;
 
-  for (let k = 0; k < proj.length; k++) {
-    const p = proj[k];
-    const depth = (1 - (p.z + 1) / 2);          // 0 дальний .. 1 ближний
-    const alpha = 0.12 + depth * 0.75;
-    const size = (0.7 + depth * 1.9) * (1 + drive * 0.5);
+      const depth = (db + 0.5) / DB;
+      const hue = (hb + 0.5) / HB * 360;
+      const alpha = 0.13 + depth * 0.72;
+      const light = 50 + depth * 30 + drive * 14;
+      const size = (0.75 + depth * 1.85) * (1 + drive * 0.5);
 
-    // цвет: от глубокого синего к яркому голубому/белому
-    // цвет плавно переливается по кругу + реагирует на голос
-    const hue = 205 + Math.sin(t * 0.55 + depth * 1.4 + i * 0.004) * 60 + drive * 45;
-    const light = 48 + depth * 32 + drive * 14;
-    ctx.fillStyle = `hsla(${hue}, 100%, ${light}%, ${alpha})`;
-    ctx.beginPath();
-    ctx.arc(p.X, p.Y, size, 0, 6.2832);
-    ctx.fill();
+      ctx.fillStyle = `hsla(${hue.toFixed(0)}, 100%, ${light.toFixed(0)}%, ${alpha.toFixed(3)})`;
+      ctx.beginPath();
+      for (let k = 0; k < arr.length; k += 2) {
+        ctx.moveTo(arr[k] + size, arr[k + 1]);
+        ctx.arc(arr[k], arr[k + 1], size, 0, 6.2832);
+      }
+      ctx.fill();
+    }
   }
 
-  // ===== ТУМАН ВНУТРИ ПУЗЫРЯ =====
+  /* туман внутри пузыря */
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   for (let f = 0; f < 6; f++) {
     const a = t * (0.22 + f * 0.06) + f * 1.9;
     const fx = cx + Math.cos(a) * R * 0.42;
     const fy = cy + Math.sin(a * 1.3 + f) * R * 0.42;
-    const fr = R * (0.65 + 0.28 * Math.sin(t * 0.8 + f * 1.4));
-    const fog = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr);
-    const fa = 0.055 + drive * 0.07;
-    fog.addColorStop(0, `hsla(${200 + f * 16}, 100%, 72%, ${fa})`);
-    fog.addColorStop(1, 'hsla(220, 100%, 60%, 0)');
-    ctx.fillStyle = fog;
-    ctx.beginPath();
-    ctx.arc(fx, fy, fr, 0, 6.2832);
-    ctx.fill();
+    const fr = R * (0.70 + 0.28 * Math.sin(t * 0.8 + f * 1.4));
+    ctx.globalAlpha = 0.10 + drive * 0.14;
+    ctx.drawImage(spFog[f % 3], fx - fr, fy - fr, fr * 2, fr * 2);
   }
   ctx.restore();
 
-  // ===== ОБОЛОЧКА ПУЗЫРЯ =====
-  const shell = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.35, R * 0.1, cx, cy, R * 1.14);
-  shell.addColorStop(0, 'rgba(205,228,255,0.10)');
-  shell.addColorStop(0.70, 'rgba(90,150,255,0.045)');
-  shell.addColorStop(0.92, 'rgba(165,205,255,0.17)');
-  shell.addColorStop(1, 'rgba(120,170,255,0)');
-  ctx.fillStyle = shell;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 1.14, 0, 6.2832);
-  ctx.fill();
+  /* оболочка пузыря */
+  ctx.globalAlpha = 1;
+  ctx.drawImage(spShell, cx - R * 1.14, cy - R * 1.14, R * 2.28, R * 2.28);
 
-  // блик на оболочке
-  ctx.strokeStyle = `rgba(195,225,255,${0.10 + drive * 0.14})`;
+  /* блик */
+  ctx.strokeStyle = `rgba(195,225,255,${(0.10 + drive * 0.14).toFixed(3)})`;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.arc(cx, cy, R * 1.07, Math.PI * 0.72, Math.PI * 1.58);
   ctx.stroke();
 
-  // ядро
-  const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.55);
-  core.addColorStop(0, `rgba(180,215,255,${0.35 + drive * 0.4})`);
-  core.addColorStop(1, 'rgba(60,120,255,0)');
-  ctx.fillStyle = core;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.55, 0, 6.2832);
-  ctx.fill();
+  /* ядро */
+  ctx.globalAlpha = 0.35 + drive * 0.40;
+  ctx.drawImage(spCore, cx - R * 0.55, cy - R * 0.55, R * 1.1, R * 1.1);
+  ctx.globalAlpha = 1;
 }
 
-/* ================= УПРАВЛЕНИЕ ЭКРАНАМИ ================= */
+/* ================= ЭКРАНЫ ================= */
 const startEl = document.getElementById('start');
 const liveEl = document.getElementById('live');
 
 document.getElementById('micStart').addEventListener('click', async () => {
   await startMic();
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx && audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch (e) {} }
   startEl.style.opacity = '0';
   setTimeout(() => { startEl.style.display = 'none'; }, 450);
   liveEl.classList.add('show');
-  resize();
+  t = 0; lastVoice = 0; smoothLevel = 0;
+  requestAnimationFrame(() => resize());
 });
 
 document.getElementById('back').addEventListener('click', () => {
@@ -322,7 +342,7 @@ document.getElementById('back').addEventListener('click', () => {
   startEl.style.display = 'flex';
   requestAnimationFrame(() => { startEl.style.opacity = '1'; });
   if (stream) { stream.getTracks().forEach(tr => tr.stop()); stream = null; }
-  if (audioCtx) { audioCtx.close(); audioCtx = null; analyser = null; }
+  if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; analyser = null; }
 });
 
 resize();
