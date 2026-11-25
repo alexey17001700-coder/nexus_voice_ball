@@ -149,6 +149,8 @@ function readLevel() {
 /* ================= РЕНДЕР ================= */
 let t = 0;
 let rotY = 0, rotX = 0;
+let lastVoice = 0;          // время последнего голоса
+const SILENCE_WAIT = 5;     // секунд тишины, прежде чем ИИ «ответит»
 
 function render() {
   requestAnimationFrame(render);
