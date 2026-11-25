@@ -309,26 +309,38 @@ function draw() {
   blobPath();
   ctx.clip();
 
-  /* 4a. вращающиеся меридианы — видно, что сгусток крутится вокруг своей оси */
+  /* 4a. глубина воды — мягкие мутные слои плавают внутри и вращаются */
   for (var md = 0; md < 6; md++) {
-    var ph = rotY + md * Math.PI / 6;
-    var rx = Math.abs(Math.cos(ph)) * R * 0.98;
-    if (rx < R * 0.07) continue;
-    var depth = 0.5 + 0.5 * Math.sin(ph);
-    ctx.strokeStyle = 'rgba(150,215,255,' + (0.045 + depth * 0.10 + drive * 0.06).toFixed(3) + ')';
-    ctx.lineWidth = 1 + depth * 1.2;
+    var ph = rotY * 0.55 + md * 1.047;
+    var dxx = cx + Math.cos(ph) * R * 0.36;
+    var dyy = cy + Math.sin(ph * 0.8 + md) * R * 0.44;
+    var drr = R * (0.42 + 0.14 * Math.sin(t * 0.6 + md * 1.3));
+    var dg = ctx.createRadialGradient(dxx, dyy, 0, dxx, dyy, drr);
+    dg.addColorStop(0, 'rgba(130,205,255,' + (0.050 + drive * 0.045).toFixed(3) + ')');
+    dg.addColorStop(0.6, 'rgba(90,160,245,' + (0.028 + drive * 0.025).toFixed(3) + ')');
+    dg.addColorStop(1, 'rgba(90,160,245,0)');
+    ctx.fillStyle = dg;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, R * 0.98, 0, 0, TAU);
-    ctx.stroke();
+    ctx.arc(dxx, dyy, drr, 0, TAU);
+    ctx.fill();
   }
 
-  /* 4b. море внутри: волны плещутся и наклоняются при вращении */
-  var tilt = Math.sin(rotY) * 0.12;
-  for (var wv = 0; wv < 7; wv++) {
-    var baseY = cy + R * (-0.86 + wv * 0.29);
-    var amp = R * (0.035 + drive * 0.075) * (0.6 + 0.4 * Math.sin(wv * 1.7));
-    var spd = 1.1 + wv * 0.22;
-    var seg = 26;
+  /* 4b. поверхность воды — волны плещутся, края растворяются без границ */
+  var tilt = Math.sin(rotY) * 0.13;
+  for (var wv = 0; wv < 9; wv++) {
+    var wa2 = (0.085 + drive * 0.16) * (1 - Math.abs(wv - 4) / 7);
+    if (wa2 < 0.010) continue;
+    var baseY = cy + R * (-0.95 + wv * 0.235);
+    var amp = R * (0.028 + drive * 0.062) * (0.55 + 0.45 * Math.sin(wv * 1.7 + t * 0.5));
+    var spd = 0.9 + wv * 0.18;
+    var seg = 34;
+    var lg = ctx.createLinearGradient(cx - R, 0, cx + R, 0);
+    lg.addColorStop(0, 'rgba(198,240,255,0)');
+    lg.addColorStop(0.30, 'rgba(198,240,255,' + wa2.toFixed(3) + ')');
+    lg.addColorStop(0.70, 'rgba(198,240,255,' + wa2.toFixed(3) + ')');
+    lg.addColorStop(1, 'rgba(198,240,255,0)');
+    ctx.strokeStyle = lg;
+    ctx.lineWidth = 1.1 + drive * 1.5;
     ctx.beginPath();
     for (var s2 = 0; s2 <= seg; s2++) {
       var u = s2 / seg;
@@ -338,10 +350,6 @@ function draw() {
              + (u - 0.5) * R * tilt * 2;
       if (s2 === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
     }
-    var wa2 = (0.10 + drive * 0.16) * (1 - Math.abs(wv - 3) / 5);
-    if (wa2 < 0.012) continue;
-    ctx.strokeStyle = 'rgba(195,238,255,' + wa2.toFixed(3) + ')';
-    ctx.lineWidth = 1.2 + drive * 1.4;
     ctx.stroke();
   }
 
@@ -353,7 +361,7 @@ function draw() {
     var gy = cy + Math.sin(ang) * rr4 * 0.75;
     var gr = R * (0.20 + 0.10 * Math.sin(t * 1.2 + ca));
     var cg2 = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
-    cg2.addColorStop(0, 'rgba(228,246,255,' + (0.07 + drive * 0.10).toFixed(3) + ')');
+    cg2.addColorStop(0, 'rgba(228,246,255,' + (0.075 + drive * 0.10).toFixed(3) + ')');
     cg2.addColorStop(1, 'rgba(228,246,255,0)');
     ctx.fillStyle = cg2;
     ctx.beginPath();
@@ -361,31 +369,23 @@ function draw() {
     ctx.fill();
   }
 
-  /* 4d. волны от ударов — расходятся кольцами от места попадания */
-  for (var e = 0; e < impAng.length; e++) {
-    var oe = impAng[e];
-    var ex = cx + Math.cos(oe.a) * R * 0.72;
-    var ey = cy + Math.sin(oe.a) * R * 0.72;
-    for (var rr3 = 0; rr3 < 3; rr3++) {
-      var rad = R * (0.10 + rr3 * 0.16) + (1 - oe.s) * R * 0.32;
-      var al = oe.s * 0.32 * (1 - rr3 / 3.5);
-      if (al <= 0.01) continue;
-      ctx.strokeStyle = 'rgba(202,240,255,' + al.toFixed(3) + ')';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(ex, ey, rad, 0, TAU);
-      ctx.stroke();
-    }
-  }
-
-  /* 4e. ядро */
-  var cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.62);
-  cg.addColorStop(0, 'rgba(220,242,255,' + (0.22 + drive * 0.30).toFixed(3) + ')');
+  /* 4d. ядро */
+  var cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.70);
+  cg.addColorStop(0, 'rgba(215,240,255,' + (0.16 + drive * 0.26).toFixed(3) + ')');
+  cg.addColorStop(0.55, 'rgba(120,190,255,' + (0.07 + drive * 0.10).toFixed(3) + ')');
   cg.addColorStop(1, 'rgba(80,140,255,0)');
   ctx.fillStyle = cg;
   ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.62, 0, TAU);
+  ctx.arc(cx, cy, R * 0.70, 0, TAU);
   ctx.fill();
+
+  /* 4e. объём сгустка: свет сверху, тень снизу */
+  var sh = ctx.createLinearGradient(cx, cy - R, cx, cy + R);
+  sh.addColorStop(0, 'rgba(170,225,255,' + (0.12 + drive * 0.06).toFixed(3) + ')');
+  sh.addColorStop(0.42, 'rgba(0,0,0,0)');
+  sh.addColorStop(1, 'rgba(2,12,44,0.42)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(cx - R * 1.5, cy - R * 1.5, R * 3, R * 3);
 
   ctx.restore();
 
