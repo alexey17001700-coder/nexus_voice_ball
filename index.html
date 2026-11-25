@@ -100,7 +100,7 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 
-/* --- точки на сфере (спираль Фибоначчи) --- */
+/* --- точки внутри пузыря (спираль Фибоначчи) --- */
 var N = 700;
 var pts = [];
 var GA = Math.PI * (3 - Math.sqrt(5));
@@ -108,7 +108,26 @@ for (var i = 0; i < N; i++) {
   var yy = 1 - (i / (N - 1)) * 2;
   var rr = Math.sqrt(Math.max(0, 1 - yy * yy));
   var th = GA * i;
-  pts.push({ x: Math.cos(th) * rr, y: yy, z: Math.sin(th) * rr });
+  var restR = 0.78 + Math.random() * 0.12;
+  pts.push({
+    x: Math.cos(th) * rr, y: yy, z: Math.sin(th) * rr,
+    r: restR, v: 0, rest: restR, ph: i * 0.35
+  });
+}
+
+/* --- удары точек по мягкой оболочке --- */
+var impacts = [];
+var sc = [0, 0, 0];
+
+function addImpact(x, y, z, s) {
+  for (var i = 0; i < impacts.length; i++) {
+    var im = impacts[i];
+    if (im.x * x + im.y * y + im.z * z > 0.88) {
+      im.s = Math.min(1.8, im.s + s * 0.6);
+      return;
+    }
+  }
+  if (impacts.length < 12) impacts.push({ x: x, y: y, z: z, s: Math.min(1.8, s) });
 }
 
 /* --- аудио --- */
