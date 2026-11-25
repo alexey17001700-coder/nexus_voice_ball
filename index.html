@@ -127,7 +127,14 @@ function addImpact(x, y, z, s) {
       return;
     }
   }
-  if (impacts.length < 12) impacts.push({ x: x, y: y, z: z, s: Math.min(1.8, s) });
+  if (impacts.length >= 5) {
+    /* держим только самые сильные удары — иначе суммируются и размазывают сгусток */
+    var minI = 0;
+    for (var j = 1; j < impacts.length; j++) if (impacts[j].s < impacts[minI].s) minI = j;
+    if (impacts[minI].s >= s) return;
+    impacts.splice(minI, 1);
+  }
+  impacts.push({ x: x, y: y, z: z, s: Math.min(1.0, s) });
 }
 
 /* --- аудио --- */
