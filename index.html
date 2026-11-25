@@ -1,514 +1,339 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Nexus — Живое общение</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05070f">
+<title>Живой режим — Nexus</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, body { height:100%; overflow:hidden; background:#05060c; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#05070f;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    touch-action:none;user-select:none}
 
-  #start {
-    position:fixed; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:38px;
-    background:radial-gradient(circle at 50% 40%, #0d1430 0%, #05060c 70%);
-    z-index:10; transition:opacity .45s ease;
-  }
-  #start h1 { color:#7fa8ff; font-size:20px; font-weight:600; letter-spacing:3px; text-transform:uppercase; opacity:.85; }
-  #start p { color:#3d4a6b; font-size:13px; letter-spacing:1px; }
+  /* ---------- СТАРТ ---------- */
+  #start{position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:26px;z-index:20;
+    background:radial-gradient(circle at 50% 42%,#0d1a33 0%,#05070f 70%)}
+  #micBtn{width:150px;height:150px;border-radius:50%;border:none;cursor:pointer;
+    font-size:62px;line-height:1;color:#eaf6ff;
+    background:radial-gradient(circle at 35% 30%,#4aa8ff,#1b4fd8 60%,#0b2a7a);
+    box-shadow:0 0 0 1px rgba(120,190,255,.45),0 0 40px rgba(60,140,255,.55),
+      inset 0 -8px 24px rgba(0,0,0,.35);
+    animation:pulse 2.6s ease-in-out infinite;transition:transform .15s}
+  #micBtn:active{transform:scale(.94)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 1px rgba(120,190,255,.45),0 0 34px rgba(60,140,255,.45),inset 0 -8px 24px rgba(0,0,0,.35)}
+    50%{box-shadow:0 0 0 1px rgba(150,210,255,.6),0 0 62px rgba(80,170,255,.75),inset 0 -8px 24px rgba(0,0,0,.35)}}
+  #start p{color:#7fa3cc;font-size:15px;letter-spacing:.4px;text-align:center;padding:0 30px}
+  #start small{color:#4d6b90;font-size:12px;letter-spacing:.3px}
 
-  .mic-btn {
-    width:130px; height:130px; border-radius:50%; border:none; cursor:pointer;
-    background:radial-gradient(circle at 35% 30%, #2b6bff, #0a2a8a 70%);
-    box-shadow:0 0 40px rgba(43,107,255,.55), 0 0 90px rgba(43,107,255,.25), inset 0 0 30px rgba(120,180,255,.35);
-    display:flex; align-items:center; justify-content:center;
-    transition:transform .18s ease;
-    animation:pulse 2.6s ease-in-out infinite;
-  }
-  .mic-btn:active { transform:scale(.93); }
-  .mic-btn svg { width:52px; height:52px; fill:#dce8ff; }
-  @keyframes pulse {
-    0%,100% { box-shadow:0 0 40px rgba(43,107,255,.55), 0 0 90px rgba(43,107,255,.25), inset 0 0 30px rgba(120,180,255,.35); }
-    50%     { box-shadow:0 0 55px rgba(43,107,255,.85), 0 0 120px rgba(43,107,255,.4), inset 0 0 40px rgba(150,200,255,.5); }
-  }
+  /* ---------- СЦЕНА ---------- */
+  #stage{position:fixed;inset:0;display:none;z-index:10;
+    background:radial-gradient(circle at 50% 45%,#0a1428 0%,#04060d 72%)}
+  #stage.on{display:block}
+  canvas{position:absolute;inset:0;display:block}
 
-  #live {
-    position:fixed; inset:0; z-index:20; display:none;
-    background:radial-gradient(circle at 50% 45%, #0a1030 0%, #04050a 75%);
-  }
-  #live.show { display:block; }
+  #status{position:absolute;top:calc(env(safe-area-inset-top,0px) + 26px);left:0;right:0;
+    text-align:center;color:#9dc4ee;font-size:14px;letter-spacing:2.4px;
+    text-transform:uppercase;text-shadow:0 0 14px rgba(80,160,255,.7);
+    pointer-events:none;transition:color .3s}
 
-  #ball { position:absolute; top:0; left:0; width:100%; height:100%; display:block; }
-
-  #status {
-    position:absolute; top:8%; left:0; right:0; text-align:center;
-    color:#7f9fe6; font-size:14px; letter-spacing:4px; text-transform:uppercase;
-    opacity:.8; pointer-events:none;
-  }
-
-  #back {
-    position:absolute; bottom:38px; left:50%; transform:translateX(-50%);
-    padding:14px 42px; border-radius:40px; border:1px solid rgba(110,150,255,.35);
-    background:rgba(20,32,70,.55);
-    color:#a8c2ff; font-size:15px; letter-spacing:2px; cursor:pointer;
-    display:flex; align-items:center; gap:10px;
-  }
-  #back:active { transform:translateX(-50%) scale(.95); background:rgba(30,48,100,.8); }
-  #back svg { width:18px; height:18px; fill:#a8c2ff; }
-
-  #hint {
-    position:absolute; bottom:110px; left:0; right:0; text-align:center;
-    color:#3a4a72; font-size:12px; letter-spacing:1px;
-  }
+  #back{position:absolute;left:50%;transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 26px);
+    width:min(78%,360px);padding:16px 0;border-radius:16px;cursor:pointer;
+    border:1px solid rgba(120,180,255,.35);color:#cfe6ff;font-size:16px;
+    letter-spacing:1.2px;background:rgba(20,40,80,.55);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    box-shadow:0 0 24px rgba(50,120,255,.25),inset 0 1px 0 rgba(160,210,255,.18)}
+  #back:active{background:rgba(35,70,130,.75)}
 </style>
 </head>
 <body>
 
 <div id="start">
-  <h1>Nexus</h1>
-  <button class="mic-btn" id="micStart" aria-label="Живое общение">
-    <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-  </button>
-  <p>нажми микрофон — живое общение</p>
+  <button id="micBtn">🎤</button>
+  <p>Нажми микрофон — откроется живое общение</p>
+  <small>Говори — шар отзовётся на голос</small>
 </div>
 
-<div id="live">
-  <canvas id="ball"></canvas>
-  <div id="status">слушаю</div>
-  <div id="hint">говори — сгусток воды ждёт 5 секунд, потом отвечает</div>
-  <button id="back">
-    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-    назад
-  </button>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="status">слушаю вас</div>
+  <button id="back">← назад</button>
 </div>
 
 <script>
-var TAU = Math.PI * 2;
+(function(){
+"use strict";
 
-var canvas = document.getElementById('ball');
-var ctx = canvas.getContext('2d');
-var statusEl = document.getElementById('status');
-
+/* ============ КАНВАС ============ */
+var cv = document.getElementById('c');
+var ctx = cv.getContext('2d', {alpha:true});
 var W = 0, H = 0, DPR = 1;
 
-function resize() {
+function resize(){
   DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = canvas.clientWidth || window.innerWidth || 360;
-  H = canvas.clientHeight || window.innerHeight || 640;
-  canvas.width = Math.max(1, Math.round(W * DPR));
-  canvas.height = Math.max(1, Math.round(H * DPR));
+  var w = window.innerWidth  || document.documentElement.clientWidth  || 360;
+  var h = window.innerHeight || document.documentElement.clientHeight || 640;
+  if(w < 50) w = 360;
+  if(h < 50) h = 640;
+  W = w; H = h;
+  cv.width  = Math.floor(w * DPR);
+  cv.height = Math.floor(h * DPR);
+  cv.style.width  = w + 'px';
+  cv.style.height = h + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function(){ setTimeout(resize, 250); });
+resize();
 
-/* --- точки внутри пузыря (спираль Фибоначчи) --- */
-var N = 700;
+/* ============ ТОЧКИ НА СФЕРЕ ============ */
+var N = 900;
 var pts = [];
 var GA = Math.PI * (3 - Math.sqrt(5));
-for (var i = 0; i < N; i++) {
-  var yy = 1 - (i / (N - 1)) * 2;
-  var rr = Math.sqrt(Math.max(0, 1 - yy * yy));
-  var th = GA * i;
-  var restR = 0.78 + Math.random() * 0.12;
+for (var i = 0; i < N; i++){
+  var y  = 1 - (i / (N - 1)) * 2;
+  var rr = Math.sqrt(Math.max(0, 1 - y*y));
+  var th = i * GA;
   pts.push({
-    x: Math.cos(th) * rr, y: yy, z: Math.sin(th) * rr,
-    r: restR, v: 0, rest: restR, ph: i * 0.35
+    x: Math.cos(th) * rr,
+    y: y,
+    z: Math.sin(th) * rr,
+    ph: Math.random() * Math.PI * 2,
+    sp: 0.55 + Math.random() * 1.5
   });
 }
 
-/* --- удары точек по мягкой оболочке --- */
-var impacts = [];
-var sc = [0, 0, 0];
+/* ============ СПРАЙТЫ СВЕЧЕНИЯ (кэш) ============ */
+function makeGlow(size, r, g, b, a){
+  var c = document.createElement('canvas');
+  c.width = c.height = size;
+  var x = c.getContext('2d');
+  var gr = x.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  gr.addColorStop(0,   'rgba('+r+','+g+','+b+','+a+')');
+  gr.addColorStop(0.45,'rgba('+r+','+g+','+b+','+(a*0.35)+')');
+  gr.addColorStop(1,   'rgba('+r+','+g+','+b+',0)');
+  x.fillStyle = gr;
+  x.fillRect(0, 0, size, size);
+  return c;
+}
+var HALO = makeGlow(256, 60, 140, 255, 0.55);
+var CORE = makeGlow(256, 190, 235, 255, 0.85);
 
-function addImpact(x, y, z, s) {
-  for (var i = 0; i < impacts.length; i++) {
-    var im = impacts[i];
-    if (im.x * x + im.y * y + im.z * z > 0.88) {
-      im.s = Math.min(1.0, im.s + s * 0.35);
-      return;
+/* ============ ЦВЕТА ПО ГЛУБИНЕ ============ */
+var BUCKETS = 8;
+var COLORS = [];
+for (var b = 0; b < BUCKETS; b++){
+  var f = b / (BUCKETS - 1);              // 0 = дальний, 1 = ближний
+  var hue = 208 + f * 62;                 // синий -> фиолетово-голубой
+  var lig = 42 + f * 34;
+  COLORS.push('hsl(' + hue.toFixed(0) + ',100%,' + lig.toFixed(0) + '%)');
+}
+var bx = [], by = [], bs = [];
+for (var k = 0; k < BUCKETS; k++){ bx.push([]); by.push([]); bs.push([]); }
+
+/* ============ МИКРОФОН ============ */
+var audioCtx = null, analyser = null, dataArr = null, stream = null, micOK = false;
+
+function startMic(){
+  return new Promise(function(res){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      res(false); return;
     }
-  }
-  if (impacts.length >= 5) {
-    /* держим только самые сильные удары — иначе суммируются и размазывают сгусток */
-    var minI = 0;
-    for (var j = 1; j < impacts.length; j++) if (impacts[j].s < impacts[minI].s) minI = j;
-    if (impacts[minI].s >= s) return;
-    impacts.splice(minI, 1);
-  }
-  impacts.push({ x: x, y: y, z: z, s: Math.min(1.0, s) });
-}
-
-/* --- аудио --- */
-var analyser = null, dataArr = null, audioCtx = null, stream = null;
-var smoothLevel = 0, state = 'idle';
-
-function startMic() {
-  return new Promise(function (done) {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { done(); return; }
-    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
-      .then(function (s) {
-        stream = s;
-        try {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          var src = audioCtx.createMediaStreamSource(stream);
-          analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 512;
-          analyser.smoothingTimeConstant = 0.75;
-          src.connect(analyser);
-          dataArr = new Uint8Array(analyser.frequencyBinCount);
-        } catch (e) { analyser = null; }
-        done();
-      })
-      .catch(function () { analyser = null; done(); });
+    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}})
+    .then(function(s){
+      stream = s;
+      var AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+      var src = audioCtx.createMediaStreamSource(s);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.75;
+      src.connect(analyser);
+      dataArr = new Uint8Array(analyser.fftSize);
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      micOK = true;
+      res(true);
+    })
+    .catch(function(){ micOK = false; res(false); });
   });
 }
-
-function readLevel() {
+function stopMic(){
+  try{ if (stream) stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+  try{ if (audioCtx) audioCtx.close(); }catch(e){}
+  stream = null; audioCtx = null; analyser = null; micOK = false;
+}
+function readLevel(){
   if (!analyser || !dataArr) return 0;
-  try {
-    analyser.getByteFrequencyData(dataArr);
-    var sum = 0;
-    for (var i = 0; i < dataArr.length; i++) sum += dataArr[i];
-    return Math.min(1, (sum / dataArr.length) / 85);
-  } catch (e) { return 0; }
+  analyser.getByteTimeDomainData(dataArr);
+  var s = 0;
+  for (var i = 0; i < dataArr.length; i++){
+    var v = (dataArr[i] - 128) / 128;
+    s += v * v;
+  }
+  return Math.sqrt(s / dataArr.length);
 }
 
-/* ================= РЕНДЕР ================= */
-var t = 0, rotY = 0, rotX = 0, lastVoice = 0;
-var SILENCE_WAIT = 5;
-var SEG = 72;
-var blobPts = [];
-var impAng = [];
-var cosY = 1, sinY = 0, cosX = 1, sinX = 0;
-var focal = 3.2;
+/* ============ СОСТОЯНИЕ ============ */
+var state = 'listen';       // listen | speak
+var silenceT = 0, speakT = 0;
+var SILENCE_LIMIT = 5.0;    // 5 секунд тишины -> отвечает
+var SPEAK_LIMIT   = 3.6;
 
-function rotPoint(x, y, z) {
-  var x1 = x * cosY - z * sinY;
-  var z1 = x * sinY + z * cosY;
-  var y1 = y * cosX - z1 * sinX;
-  var z2 = y * sinX + z1 * cosX;
-  sc[0] = x1; sc[1] = y1; sc[2] = z2;
-}
+var level = 0;              // сглаженный уровень голоса
+var rotY = 0, tilt = 0.34;
+var t0 = performance.now(), tPrev = t0;
 
-/* радиус мягкой оболочки в направлении экранного угла */
-/* сгусток СТАТИЧЕН по размеру: база всегда 1.0, меняется ТОЛЬКО там, куда бьёт точка */
-function blobRadius(th) {
-  /* база строго 1.0 — сгусток полностью статичен по размеру */
-  var r = 1.0;
-  /* бегущая рябь по поверхности — в среднем ноль, размер не меняет */
-  r += Math.sin(th * 5 + t * 1.6) * 0.012;
-  r += Math.sin(th * 8 - t * 2.4) * 0.008;
-  r += Math.sin(th * 3 + t * 0.9) * 0.010;
-  return r;
-}
+var statusEl = document.getElementById('status');
+var stageEl  = document.getElementById('stage');
+var startEl  = document.getElementById('start');
 
-function blobPath() {
-  ctx.beginPath();
-  ctx.moveTo(blobPts[0], blobPts[1]);
-  for (var k = 2; k < blobPts.length; k += 2) ctx.lineTo(blobPts[k], blobPts[k + 1]);
-  ctx.closePath();
-}
+/* ============ ЦИКЛ ============ */
+function frame(now){
+  var dt = Math.min((now - tPrev) / 1000, 0.05);
+  tPrev = now;
+  var t = (now - t0) / 1000;
 
-function draw() {
-  if (!W || !H) resize();
-  t += 0.016;
-  var dt = 0.016;
+  /* --- уровень --- */
+  var raw = micOK ? readLevel() : 0;
+  var target = Math.min(1, raw * 4.6);
+  level += (target - level) * 0.28;
 
-  var raw = readLevel();
-  smoothLevel += (raw - smoothLevel) * 0.18;
-
-  var drive;
-  if (smoothLevel > 0.06) {
-    lastVoice = t;
-    state = 'listen';
-    drive = smoothLevel;
+  /* --- логика тишины --- */
+  if (state === 'listen'){
+    if (level < 0.06) silenceT += dt; else silenceT = 0;
+    if (silenceT > SILENCE_LIMIT){ state = 'speak'; speakT = 0; }
   } else {
-    var silence = t - lastVoice;
-    if (silence < SILENCE_WAIT) {
-      state = 'listen';
-      drive = 0.06 + Math.sin(t * 1.6) * 0.035;
-    } else {
-      state = 'speak';
-      var fake = (Math.sin(t * 2.2) * 0.5 + 0.5) * 0.30 + Math.sin(t * 5.7) * 0.06;
-      drive = Math.max(0.02, fake);
-    }
+    speakT += dt;
+    if (speakT > SPEAK_LIMIT){ state = 'listen'; silenceT = 0; }
   }
-  if (drive < 0) drive = 0;
 
-  statusEl.textContent = state === 'listen' ? 'слушаю вас' : 'отвечаю';
+  /* --- видимый уровень --- */
+  var vis;
+  if (state === 'speak'){
+    vis = 0.30 + 0.22 * Math.sin(t * 7.3)
+              + 0.14 * Math.sin(t * 13.1 + 1.7)
+              + 0.08 * Math.sin(t * 23.7);
+    vis = Math.max(0.10, vis);
+  } else if (!micOK){
+    vis = 0.16 + 0.10 * Math.sin(t * 2.1) + 0.06 * Math.sin(t * 4.7 + 1.1);
+  } else {
+    vis = level;
+  }
 
-  rotY += 0.010 + drive * 0.022;
-  rotX = Math.sin(t * 0.35) * 0.35;
-  cosY = Math.cos(rotY); sinY = Math.sin(rotY);
-  cosX = Math.cos(rotX); sinX = Math.sin(rotX);
+  /* --- статус --- */
+  var want = (state === 'speak') ? 'отвечаю' : 'слушаю вас';
+  if (statusEl.textContent !== want) statusEl.textContent = want;
+  statusEl.style.color = (state === 'speak') ? '#c9b4ff' : '#9dc4ee';
 
+  /* --- вращение --- */
+  rotY += (0.0042 + vis * 0.010) * (dt * 60);
+  var ct = Math.cos(tilt), st = Math.sin(tilt);
+
+  /* --- геометрия --- */
   var cx = W / 2, cy = H / 2;
-  var baseR = Math.min(W, H) * 0.30;
-  var R = baseR; /* размер пузыря не меняется вообще */
-
-  /* --- физика: точки бьются о мягкую оболочку и не вылетают --- */
-  for (var i = 0; i < N; i++) {
-    var p = pts[i];
-    var rest = p.rest + 0.025 * Math.sin(t * 1.4 + p.ph);
-    var acc = (rest - p.r) * 30 - p.v * 3.0;
-    acc += drive * 20 * (0.45 + 0.55 * Math.sin(t * 8 + p.ph));
-    p.v += acc * dt;
-    /* скорость ограничена — точки не разгоняются и не бьют по оболочке слишком сильно */
-    if (p.v > 1.1) p.v = 1.1; else if (p.v < -1.1) p.v = -1.1;
-    p.r += p.v * dt;
-    if (p.r > 1.0) {
-      p.r = 1.0;
-      var hit = Math.abs(p.v);
-      p.v = -hit * 0.55;
-      if (hit > 0.35) addImpact(p.x, p.y, p.z, Math.min(0.9, hit * 0.5));
-    }
-    if (p.r < 0.22) { p.r = 0.22; p.v = Math.abs(p.v) * 0.4; }
-  }
-
-  /* --- затухание ударов --- */
-  for (var m = impacts.length - 1; m >= 0; m--) {
-    impacts[m].s *= 0.87;
-    if (impacts[m].s < 0.03) impacts.splice(m, 1);
-  }
-
-  /* --- экранные углы ударов --- */
-  impAng.length = 0;
-  for (var m2 = 0; m2 < impacts.length; m2++) {
-    var im = impacts[m2];
-    rotPoint(im.x, im.y, im.z);
-    var angI = Math.atan2(sc[1], sc[0]);
-    var rrI = R * blobRadius(angI) * 0.90;
-    impAng.push({
-      a: angI, f: (1 - sc[2]) / 2, s: im.s,
-      px: cx + Math.cos(angI) * rrI,
-      py: cy + Math.sin(angI) * rrI
-    });
-  }
+  var R  = Math.min(W, H) * 0.30;
+  var breathe = 1 + vis * 0.10 + 0.012 * Math.sin(t * 1.7);
 
   ctx.clearRect(0, 0, W, H);
 
-  /* 1. свечение позади */
-  var gl = ctx.createRadialGradient(cx, cy, R * 0.2, cx, cy, R * 2.1);
-  gl.addColorStop(0, 'rgba(70,130,255,' + (0.26 + drive * 0.28).toFixed(3) + ')');
-  gl.addColorStop(0.5, 'rgba(40,80,200,' + (0.10 + drive * 0.12).toFixed(3) + ')');
-  gl.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = gl;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 2.1, 0, TAU);
-  ctx.fill();
+  /* --- ореол --- */
+  ctx.globalCompositeOperation = 'lighter';
+  var haloSize = R * 4.2 * (1 + vis * 0.16);
+  ctx.globalAlpha = 0.30 + vis * 0.35;
+  ctx.drawImage(HALO, cx - haloSize/2, cy - haloSize/2, haloSize, haloSize);
 
-  /* 2. контур сгустка — статичный, без раздувания */
-  blobPts.length = 0;
-  for (var k = 0; k < SEG; k++) {
-    var th2 = k / SEG * TAU;
-    var rr2 = R * blobRadius(th2);
-    blobPts.push(cx + Math.cos(th2) * rr2, cy + Math.sin(th2) * rr2);
+  /* --- ядро --- */
+  var coreSize = R * 1.35 * (1 + vis * 0.30);
+  ctx.globalAlpha = 0.22 + vis * 0.55;
+  ctx.drawImage(CORE, cx - coreSize/2, cy - coreSize/2, coreSize, coreSize);
+  ctx.globalAlpha = 1;
+
+  /* --- сброс корзин --- */
+  for (var b2 = 0; b2 < BUCKETS; b2++){ bx[b2].length = 0; by[b2].length = 0; bs[b2].length = 0; }
+
+  var cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+
+  for (var p = 0; p < N; p++){
+    var pt = pts[p];
+
+    /* живое колыхание радиуса */
+    var wob = 1
+      + vis * 0.30 * (0.40 + 0.60 * Math.sin(t * 3.1 * pt.sp + pt.ph))
+      + 0.030 * Math.sin(t * 2.2 + pt.ph * 2.0)
+      + 0.018 * Math.sin(t * 5.3 * pt.sp + pt.ph * 1.3);
+
+    var rad = R * breathe * wob;
+
+    /* поворот вокруг Y */
+    var x1 =  pt.x * cosY + pt.z * sinY;
+    var z1 = -pt.x * sinY + pt.z * cosY;
+    var y1 =  pt.y;
+
+    /* наклон */
+    var y2 = y1 * ct - z1 * st;
+    var z2 = y1 * st + z1 * ct;
+
+    /* перспектива */
+    var persp = 1 + z2 * 0.26;
+    var sx = cx + x1 * rad * persp;
+    var sy = cy + y2 * rad * persp;
+
+    /* глубина: z2 от -1 (дальний) до 1 (ближний) */
+    var d = (z2 + 1) * 0.5;
+    if (d < 0) d = 0; else if (d > 1) d = 1;
+
+    var bi = (d * (BUCKETS - 1)) | 0;
+    var size = (0.85 + d * 1.95) * (1 + vis * 0.35);
+
+    bx[bi].push(sx);
+    by[bi].push(sy);
+    bs[bi].push(size);
   }
 
-  /* 3. тело сгустка воды — размер статичен, растёт ТОЛЬКО там, куда бьёт точка */
-  var bg = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.38, R * 0.04, cx, cy, R * 1.22);
-  bg.addColorStop(0, 'rgba(170,228,255,' + (0.44 + drive * 0.20).toFixed(3) + ')');
-  bg.addColorStop(0.30, 'rgba(72,152,240,' + (0.36 + drive * 0.12).toFixed(3) + ')');
-  bg.addColorStop(0.68, 'rgba(28,78,190,0.30)');
-  bg.addColorStop(1, 'rgba(10,32,95,0.22)');
-  ctx.fillStyle = bg;
-  blobPath();
-  ctx.fill();
-
-  /* 4. всё живое — строго внутри сгустка */
-  ctx.save();
-  blobPath();
-  ctx.clip();
-
-  /* 4a. глубина воды — мягкие мутные слои плавают внутри и вращаются */
-  for (var md = 0; md < 6; md++) {
-    var ph = rotY * 0.55 + md * 1.047;
-    var dxx = cx + Math.cos(ph) * R * 0.36;
-    var dyy = cy + Math.sin(ph * 0.8 + md) * R * 0.44;
-    var drr = R * (0.42 + 0.14 * Math.sin(t * 0.6 + md * 1.3));
-    var dg = ctx.createRadialGradient(dxx, dyy, 0, dxx, dyy, drr);
-    dg.addColorStop(0, 'rgba(130,205,255,' + (0.050 + drive * 0.045).toFixed(3) + ')');
-    dg.addColorStop(0.6, 'rgba(90,160,245,' + (0.028 + drive * 0.025).toFixed(3) + ')');
-    dg.addColorStop(1, 'rgba(90,160,245,0)');
-    ctx.fillStyle = dg;
+  /* --- отрисовка точек по корзинам --- */
+  for (var q = 0; q < BUCKETS; q++){
+    var arr = bx[q];
+    if (!arr.length) continue;
+    var ay = by[q], as = bs[q];
+    ctx.fillStyle = COLORS[q];
     ctx.beginPath();
-    ctx.arc(dxx, dyy, drr, 0, TAU);
-    ctx.fill();
-  }
-
-  /* 4b. поверхность воды — волны плещутся, края растворяются без границ */
-  var tilt = Math.sin(rotY) * 0.13;
-  for (var wv = 0; wv < 9; wv++) {
-    var wa2 = 0.085 * (1 - Math.abs(wv - 4) / 7);
-    if (wa2 < 0.010) continue;
-    var baseY = cy + R * (-0.95 + wv * 0.235);
-    var amp = R * 0.028 * (0.55 + 0.45 * Math.sin(wv * 1.7 + t * 0.5));
-    var spd = 0.9 + wv * 0.18;
-    var seg = 34;
-    var lg = ctx.createLinearGradient(cx - R, 0, cx + R, 0);
-    lg.addColorStop(0, 'rgba(198,240,255,0)');
-    lg.addColorStop(0.30, 'rgba(198,240,255,' + wa2.toFixed(3) + ')');
-    lg.addColorStop(0.70, 'rgba(198,240,255,' + wa2.toFixed(3) + ')');
-    lg.addColorStop(1, 'rgba(198,240,255,0)');
-    ctx.strokeStyle = lg;
-    ctx.lineWidth = 1.1;
-    ctx.beginPath();
-    for (var s2 = 0; s2 <= seg; s2++) {
-      var u = s2 / seg;
-      var xx = cx - R + u * R * 2;
-      var yy = baseY + Math.sin(u * 6.0 + t * spd + wv) * amp
-             + Math.sin(u * 11.0 - t * spd * 0.7) * amp * 0.45
-             + (u - 0.5) * R * tilt * 2;
-      if (s2 === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    for (var m = 0; m < arr.length; m++){
+      var r2 = as[m] * 0.5;
+      ctx.moveTo(arr[m] + r2, ay[m]);
+      ctx.arc(arr[m], ay[m], r2, 0, 6.2832);
     }
-    ctx.stroke();
-  }
-
-  /* 4c. блики-каустики, крутятся вместе со сгустком */
-  for (var ca = 0; ca < 5; ca++) {
-    var ang = rotY * 1.4 + ca * 1.256;
-    var rr4 = R * (0.30 + 0.42 * ((ca * 0.37) % 1));
-    var gx = cx + Math.cos(ang) * rr4;
-    var gy = cy + Math.sin(ang) * rr4 * 0.75;
-    var gr = R * (0.20 + 0.10 * Math.sin(t * 1.2 + ca));
-    var cg2 = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
-    cg2.addColorStop(0, 'rgba(228,246,255,' + (0.075 + drive * 0.10).toFixed(3) + ')');
-    cg2.addColorStop(1, 'rgba(228,246,255,0)');
-    ctx.fillStyle = cg2;
-    ctx.beginPath();
-    ctx.arc(gx, gy, gr, 0, TAU);
     ctx.fill();
   }
 
-  /* 4d. ядро */
-  var cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.70);
-  cg.addColorStop(0, 'rgba(215,240,255,' + (0.16 + drive * 0.26).toFixed(3) + ')');
-  cg.addColorStop(0.55, 'rgba(120,190,255,' + (0.07 + drive * 0.10).toFixed(3) + ')');
-  cg.addColorStop(1, 'rgba(80,140,255,0)');
-  ctx.fillStyle = cg;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * 0.70, 0, TAU);
-  ctx.fill();
-
-  /* 4e. объём сгустка: свет сверху, тень снизу */
-  var sh = ctx.createLinearGradient(cx, cy - R, cx, cy + R);
-  sh.addColorStop(0, 'rgba(170,225,255,' + (0.12 + drive * 0.06).toFixed(3) + ')');
-  sh.addColorStop(0.42, 'rgba(0,0,0,0)');
-  sh.addColorStop(1, 'rgba(2,12,44,0.42)');
-  ctx.fillStyle = sh;
-  ctx.fillRect(cx - R * 1.5, cy - R * 1.5, R * 3, R * 3);
-
-  /* 4f. БЛИКИ — световые пятна точно там, куда ударила точка */
-  for (var bi = 0; bi < impAng.length; bi++) {
-    var bp = impAng[bi];
-    if (bp.s < 0.05) continue;
-    var bR = R * (0.10 + 0.22 * bp.s);
-    var bg2 = ctx.createRadialGradient(bp.px, bp.py, 0, bp.px, bp.py, bR);
-    bg2.addColorStop(0, 'rgba(240,252,255,' + (0.24 * bp.s).toFixed(3) + ')');
-    bg2.addColorStop(0.35, 'rgba(190,235,255,' + (0.14 * bp.s).toFixed(3) + ')');
-    bg2.addColorStop(1, 'rgba(160,215,255,0)');
-    ctx.fillStyle = bg2;
-    ctx.beginPath();
-    ctx.arc(bp.px, bp.py, bR, 0, TAU);
-    ctx.fill();
-
-    var bcR = bR * 0.30;
-    var bcg = ctx.createRadialGradient(bp.px, bp.py, 0, bp.px, bp.py, bcR);
-    bcg.addColorStop(0, 'rgba(255,255,255,' + (0.72 * bp.s).toFixed(3) + ')');
-    bcg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = bcg;
-    ctx.beginPath();
-    ctx.arc(bp.px, bp.py, bcR, 0, TAU);
-    ctx.fill();
-  }
-
-  ctx.restore();
-
-  /* 5. оболочка сгустка — мягкая, гнётся только в местах удара */
-  ctx.strokeStyle = 'rgba(120,180,255,0.10)';
-  ctx.lineWidth = 10;
-  blobPath();
-  ctx.stroke();
-
-  ctx.strokeStyle = 'rgba(185,225,255,' + (0.34 + drive * 0.24).toFixed(3) + ')';
-  ctx.lineWidth = 1.6;
-  blobPath();
-  ctx.stroke();
-
-  /* 5b. БЛИКИ В МЕСТАХ УДАРА — световые вспышки на поверхности сгустка */
-  for (var bi = 0; bi < impAng.length; bi++) {
-    var o2 = impAng[bi];
-    var bx = cx + Math.cos(o2.a) * R * 0.97;
-    var by = cy + Math.sin(o2.a) * R * 0.97;
-    var br = R * (0.09 + 0.17 * o2.s);
-    var depth = 0.40 + 0.60 * o2.f;   /* ближе к зрителю — ярче */
-    var bgr = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-    bgr.addColorStop(0, 'rgba(255,255,255,' + (0.60 * o2.s * depth).toFixed(3) + ')');
-    bgr.addColorStop(0.30, 'rgba(200,236,255,' + (0.34 * o2.s * depth).toFixed(3) + ')');
-    bgr.addColorStop(0.65, 'rgba(150,205,255,' + (0.14 * o2.s * depth).toFixed(3) + ')');
-    bgr.addColorStop(1, 'rgba(140,200,255,0)');
-    ctx.fillStyle = bgr;
-    ctx.beginPath();
-    ctx.arc(bx, by, br, 0, TAU);
-    ctx.fill();
-    /* тонкий световой штрих по оболочке в точке удара */
-    ctx.beginPath();
-    ctx.arc(cx, cy, R * 0.985, o2.a - 0.20, o2.a + 0.20);
-    ctx.strokeStyle = 'rgba(235,250,255,' + (0.42 * o2.s * depth).toFixed(3) + ')';
-    ctx.lineWidth = 2.2;
-    ctx.stroke();
-  }
-
-  /* 6. блик — крутится вместе со сгустком */
-  var k0 = Math.floor(SEG * (0.55 + 0.10 * Math.sin(rotY)));
-  var k1 = k0 + Math.floor(SEG * 0.22);
-  ctx.beginPath();
-  var ks = (((k0 % SEG) + SEG) % SEG) * 2;
-  ctx.moveTo(blobPts[ks], blobPts[ks + 1]);
-  for (var k2 = k0 + 1; k2 <= k1; k2++) {
-    var kk = (((k2 % SEG) + SEG) % SEG) * 2;
-    ctx.lineTo(blobPts[kk], blobPts[kk + 1]);
-  }
-  ctx.strokeStyle = 'rgba(210,238,255,' + (0.18 + drive * 0.18).toFixed(3) + ')';
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+  requestAnimationFrame(frame);
 }
 
-function render() {
-  requestAnimationFrame(render);
-  try { draw(); } catch (e) { /* не роняем цикл */ }
-}
-
-/* ================= ЭКРАНЫ ================= */
-var startEl = document.getElementById('start');
-var liveEl = document.getElementById('live');
-
-document.getElementById('micStart').addEventListener('click', function () {
-  startMic().then(function () {
-    if (audioCtx && audioCtx.state === 'suspended') { try { audioCtx.resume(); } catch (e) {} }
-    startEl.style.opacity = '0';
-    setTimeout(function () { startEl.style.display = 'none'; }, 450);
-    liveEl.classList.add('show');
-    t = 0; lastVoice = 0; smoothLevel = 0;
-    impacts.length = 0;
-    for (var q = 0; q < N; q++) { pts[q].r = pts[q].rest; pts[q].v = 0; }
-    resize();
-    setTimeout(resize, 120);
-  });
+/* ============ СТАРТ / СТОП ============ */
+document.getElementById('micBtn').addEventListener('click', function(){
+  startEl.style.display = 'none';
+  stageEl.classList.add('on');
+  resize();
+  state = 'listen'; silenceT = 0; speakT = 0; level = 0;
+  t0 = performance.now(); tPrev = t0;
+  startMic();
+  requestAnimationFrame(frame);
 });
 
-document.getElementById('back').addEventListener('click', function () {
-  liveEl.classList.remove('show');
+document.getElementById('back').addEventListener('click', function(){
+  stageEl.classList.remove('on');
   startEl.style.display = 'flex';
-  startEl.style.opacity = '1';
-  if (stream) { stream.getTracks().forEach(function (tr) { tr.stop(); }); stream = null; }
-  if (audioCtx) { try { audioCtx.close(); } catch (e) {} audioCtx = null; analyser = null; }
+  stopMic();
 });
 
-window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', function () { setTimeout(resize, 250); });
+/* пауза/возврат — не даём канвасу обнулиться */
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden){ resize(); tPrev = performance.now(); }
+});
 
-resize();
-render();
+})();
 </script>
 </body>
 </html>
