@@ -294,11 +294,11 @@ function draw() {
     blobPts.push(cx + Math.cos(th2) * rr2, cy + Math.sin(th2) * rr2);
   }
 
-  /* 3. тело пузыря */
-  var bg = ctx.createRadialGradient(cx - R * 0.32, cy - R * 0.32, R * 0.05, cx, cy, R * 1.20);
-  bg.addColorStop(0, 'rgba(110,170,255,' + (0.20 + drive * 0.14).toFixed(3) + ')');
-  bg.addColorStop(0.65, 'rgba(45,90,190,0.10)');
-  bg.addColorStop(1, 'rgba(20,40,120,0.03)');
+  /* 3. тело сгустка воды */
+  var bg = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.34, R * 0.05, cx, cy, R * 1.22);
+  bg.addColorStop(0, 'rgba(150,205,255,' + (0.24 + drive * 0.16).toFixed(3) + ')');
+  bg.addColorStop(0.55, 'rgba(60,120,215,0.13)');
+  bg.addColorStop(1, 'rgba(20,45,130,0.04)');
   ctx.fillStyle = bg;
   blobPath();
   ctx.fill();
