@@ -248,10 +248,10 @@ function render() {
     const size = (0.7 + depth * 1.9) * (1 + drive * 0.5);
 
     // цвет: от глубокого синего к яркому голубому/белому
-    const r = Math.round(60 + depth * 120 + drive * 60);
-    const g = Math.round(120 + depth * 110 + drive * 40);
-    const b = 255;
-    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    // цвет плавно переливается по кругу + реагирует на голос
+    const hue = 205 + Math.sin(t * 0.55 + depth * 1.4 + i * 0.004) * 60 + drive * 45;
+    const light = 48 + depth * 32 + drive * 14;
+    ctx.fillStyle = `hsla(${hue}, 100%, ${light}%, ${alpha})`;
     ctx.beginPath();
     ctx.arc(p.X, p.Y, size, 0, 6.2832);
     ctx.fill();
