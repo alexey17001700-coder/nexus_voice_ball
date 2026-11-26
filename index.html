@@ -154,6 +154,93 @@ function makeRainbowGlow(size, a){
 var HALO = makeGlow(256, 60, 140, 255, 0.55);
 var CORE = makeRainbowGlow(256, 0.85);
 
+/* ============ НЕЙРОННЫЕ СВЯЗИ ============ */
+var NEURONS = [];
+var NEU_N = 16;
+for (var n = 0; n < NEU_N; n++){
+  NEURONS.push({
+    ang:    (n / NEU_N) * Math.PI * 2 + Math.random() * 0.40,
+    len:    0.80 + Math.random() * 0.80,          // длина в долях R
+    bend:   (Math.random() * 2 - 1) * 0.60,       // изгиб кривой
+    ph:     Math.random() * Math.PI * 2,
+    sp:     0.45 + Math.random() * 0.95,
+    hue:    196 + Math.random() * 140,            // синий -> фиолетовый -> розовый
+    w:      0.7 + Math.random() * 1.1,
+    branch: Math.random() < 0.60                  // есть ли ответвление
+  });
+}
+
+/* кривые-нейроны от центра: мягкое свечение, без чётких граней */
+function drawNeurons(cx, cy, R, t, vis){
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (var i = 0; i < NEURONS.length; i++){
+    var nn = NEURONS[i];
+    var pulse = 0.55 + 0.45 * Math.sin(t * nn.sp * 1.6 + nn.ph);
+    var grow  = 0.55 + vis * 0.80;
+    var L     = R * nn.len * (0.50 + grow * 0.80);
+    var a0    = nn.ang + t * 0.055;               // медленный дрейф
+    var r0    = R * 0.20;
+
+    var x0 = cx + Math.cos(a0) * r0;
+    var y0 = cy + Math.sin(a0) * r0;
+    var x1 = cx + Math.cos(a0 + nn.bend * 0.50) * (r0 + L * 0.55);
+    var y1 = cy + Math.sin(a0 + nn.bend * 0.50) * (r0 + L * 0.55);
+    var x2 = cx + Math.cos(a0 + nn.bend) * (r0 + L);
+    var y2 = cy + Math.sin(a0 + nn.bend) * (r0 + L);
+
+    var alpha = (0.09 + vis * 0.40) * pulse;
+    var hue   = nn.hue.toFixed(0);
+
+    /* три прохода: широкий-тусклый -> узкий-яркий = мягкое свечение */
+    var passes = [
+      [nn.w * 7.0, alpha * 0.10],
+      [nn.w * 3.2, alpha * 0.26],
+      [nn.w * 1.2, alpha * 0.85]
+    ];
+    for (var k = 0; k < passes.length; k++){
+      ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + passes[k][1].toFixed(3) + ')';
+      ctx.lineWidth   = passes[k][0];
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.quadraticCurveTo(x1, y1, x2, y2);
+      ctx.stroke();
+    }
+
+    /* синапс на конце — мягкое пятно, растворяется в ноль */
+    var sr = (1.5 + vis * 3.2) * pulse;
+    var g = ctx.createRadialGradient(x2, y2, 0, x2, y2, sr * 3.4);
+    g.addColorStop(0, 'hsla(' + hue + ',100%,82%,' + (alpha * 0.90).toFixed(3) + ')');
+    g.addColorStop(1, 'hsla(' + hue + ',100%,70%,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x2, y2, sr * 3.4, 0, 6.2832);
+    ctx.fill();
+
+    /* ответвление — как у нейрона */
+    if (nn.branch){
+      var ba  = a0 + nn.bend + (nn.bend >= 0 ? 0.58 : -0.58);
+      var bl  = L * 0.42;
+      var bx0 = cx + Math.cos(a0 + nn.bend * 0.72) * (r0 + L * 0.72);
+      var by0 = cy + Math.sin(a0 + nn.bend * 0.72) * (r0 + L * 0.72);
+      var bx2 = bx0 + Math.cos(ba) * bl;
+      var by2 = by0 + Math.sin(ba) * bl;
+      var mxx = (bx0 + bx2) / 2 + Math.sin(ba) * bl * 0.28;
+      var myy = (by0 + by2) / 2 - Math.cos(ba) * bl * 0.28;
+      for (var k2 = 0; k2 < passes.length; k2++){
+        ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + (passes[k2][1] * 0.70).toFixed(3) + ')';
+        ctx.lineWidth   = passes[k2][0] * 0.70;
+        ctx.beginPath();
+        ctx.moveTo(bx0, by0);
+        ctx.quadraticCurveTo(mxx, myy, bx2, by2);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
 /* ============ КРИВЫЕ ЛУЧИ ОТ ЦЕНТРА ============ */
 var RAYS = 7;
 var raySeed = [];
