@@ -426,44 +426,26 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
     ctx.arc(P2[0], P2[1], sr * 3.4, 0, 6.2832);
     ctx.fill();
 
-    /* --- ответвления: вырастают от голоса --- */
+    /* --- ответвления: вырастают от голоса, тоже молнии --- */
     var bA = 0.35 + vis * 0.75;
     for (var bi = 0; bi < nn.brs.length; bi++){
       var br = nn.brs[bi];
-      var s3 = qpt3(p0, c1, p2, br.at);
-      var bd = brDir(br.bang, br.side, dx, dy, dz, e1x, e1y, e1z, e2x, e2y, e2z);
-      var bl = L * br.len * bg;
-      var bc = brCurve(s3, bd, bl, e2x, e2y, e2z, br.bend);
-      var B0 = proj3(rot3(s3[0], s3[1], s3[2], cosY, sinY, ct, st), cx, cy, R);
-      var B1 = proj3(rot3(bc[1][0], bc[1][1], bc[1][2], cosY, sinY, ct, st), cx, cy, R);
-      var B2 = proj3(rot3(bc[0][0], bc[0][1], bc[0][2], cosY, sinY, ct, st), cx, cy, R);
+      var bBolt = brBolts[bi];
+      if (!bBolt) continue;
 
-      for (var k2 = 0; k2 < passes.length; k2++){
-        ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + (passes[k2][1] * bA * 0.72).toFixed(3) + ')';
-        ctx.lineWidth   = passes[k2][0] * 0.72;
-        ctx.beginPath();
-        ctx.moveTo(B0[0], B0[1]);
-        ctx.quadraticCurveTo(B1[0], B1[1], B2[0], B2[1]);
-        ctx.stroke();
-      }
+      strokeBolt(bBolt, cosY, sinY, ct, st, cx, cy, R,
+                 hue, alpha * bA * 0.80, nn.w * ws * 0.72, flick, 2);
 
       /* ветка второго порядка — сеть становится гуще */
       if (br.sub){
-        var s3b = qpt3(s3, bc[1], bc[0], 0.55);
+        var s3b = boltAt(bBolt, 0.55);
         var bd2 = brDir(br.bang + br.side * 1.15, br.side, dx, dy, dz, e1x, e1y, e1z, e2x, e2y, e2z);
-        var bl2 = bl * 0.52;
+        var bl2 = L * br.len * bg * 0.52;
         var bc2 = brCurve(s3b, bd2, bl2, e2x, e2y, e2z, br.bend);
-        var C0 = proj3(rot3(s3b[0], s3b[1], s3b[2], cosY, sinY, ct, st), cx, cy, R);
-        var C1 = proj3(rot3(bc2[1][0], bc2[1][1], bc2[1][2], cosY, sinY, ct, st), cx, cy, R);
-        var C2 = proj3(rot3(bc2[0][0], bc2[0][1], bc2[0][2], cosY, sinY, ct, st), cx, cy, R);
-        for (var k3 = 0; k3 < passes.length; k3++){
-          ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + (passes[k3][1] * bA * 0.55).toFixed(3) + ')';
-          ctx.lineWidth   = passes[k3][0] * 0.55;
-          ctx.beginPath();
-          ctx.moveTo(C0[0], C0[1]);
-          ctx.quadraticCurveTo(C1[0], C1[1], C2[0], C2[1]);
-          ctx.stroke();
-        }
+        var subBolt = boltPts(s3b, bc2[1], bc2[0], e1x, e1y, e1z, e2x, e2y, e2z,
+                              br.bang + 2.1, t, bl2 * (0.12 + 0.18 * vis), 6);
+        strokeBolt(subBolt, cosY, sinY, ct, st, cx, cy, R,
+                   hue, alpha * bA * 0.60, nn.w * ws * 0.55, flick, 2);
       }
     }
 
