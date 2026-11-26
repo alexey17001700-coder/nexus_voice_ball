@@ -158,6 +158,28 @@ var CORE = makeRainbowGlow(256, 0.85);
 var NEURONS = [];
 var NEU_N = 16;
 for (var n = 0; n < NEU_N; n++){
+  /* ответвления: 1-2 у каждого, у части — ветка второго порядка */
+  var nb = 1 + ((Math.random() * 2) | 0);
+  var brs = [];
+  for (var nb2 = 0; nb2 < nb; nb2++){
+    brs.push({
+      at:   0.38 + Math.random() * 0.42,          // где сидит на стволе (0..1)
+      side: Math.random() < 0.5 ? 1 : -1,         // в какую сторону уходит
+      len:  0.28 + Math.random() * 0.34,          // длина в долях L
+      bend: (Math.random() * 2 - 1) * 0.95,       // изгиб
+      sub:  Math.random() < 0.55                  // ветка второго порядка
+    });
+  }
+  /* бегущие точки-сигналы: 2-4 на нейрон */
+  var sig = [];
+  var nsig = 2 + ((Math.random() * 3) | 0);
+  for (var s2 = 0; s2 < nsig; s2++){
+    sig.push({
+      u:  Math.random(),                          // 0 = центр, 1 = конец
+      sp: 0.16 + Math.random() * 0.26,            // скорость
+      br:  (brs.length && Math.random() < 0.45) ? ((Math.random() * brs.length) | 0) : -1
+    });
+  }
   NEURONS.push({
     ang:    (n / NEU_N) * Math.PI * 2 + Math.random() * 0.40,
     len:    0.80 + Math.random() * 0.80,          // длина в долях R
@@ -165,9 +187,19 @@ for (var n = 0; n < NEU_N; n++){
     ph:     Math.random() * Math.PI * 2,
     sp:     0.45 + Math.random() * 0.95,
     hue:    196 + Math.random() * 140,            // синий -> фиолетовый -> розовый
-    w:      0.7 + Math.random() * 1.1,
-    branch: Math.random() < 0.60                  // есть ли ответвление
+    w:      1.00 + Math.random() * 1.25,          // потолще
+    brs:    brs,
+    sig:    sig
   });
+}
+
+/* точка на квадратичной кривой Безье (u = 0..1) */
+function qpt(x0, y0, x1, y1, x2, y2, u){
+  var m = 1 - u;
+  return [
+    m * m * x0 + 2 * m * u * x1 + u * u * x2,
+    m * m * y0 + 2 * m * u * y1 + u * u * y2
+  ];
 }
 
 /* кривые-нейроны от центра: мягкое свечение, без чётких граней */
