@@ -228,10 +228,26 @@ function drawNeurons(cx, cy, R, t, vis){
 
     /* три прохода: широкий-тусклый -> узкий-яркий = мягкое свечение */
     var passes = [
-      [nn.w * 7.0, alpha * 0.10],
-      [nn.w * 3.2, alpha * 0.26],
-      [nn.w * 1.2, alpha * 0.85]
+      [nn.w * 6.0, alpha * 0.10],
+      [nn.w * 2.8, alpha * 0.26],
+      [nn.w * 1.1, alpha * 0.85]
     ];
+
+    /* точка сигнала: на стволе или на ответвлении */
+    function sigPt(sg, u){
+      if (sg.br >= 0 && nn.brs[sg.br]){
+        var br0 = nn.brs[sg.br];
+        var p0  = qpt(x0, y0, x1, y1, x2, y2, br0.at);
+        var a1  = a0 + nn.bend * br0.at + br0.side * (0.62 + br0.bend * 0.35);
+        var l1  = L * br0.len;
+        var ex  = p0[0] + Math.cos(a1) * l1;
+        var ey  = p0[1] + Math.sin(a1) * l1;
+        var mx  = (p0[0] + ex) / 2 + Math.sin(a1) * l1 * 0.30;
+        var my  = (p0[1] + ey) / 2 - Math.cos(a1) * l1 * 0.30;
+        return qpt(p0[0], p0[1], mx, my, ex, ey, u);
+      }
+      return qpt(x0, y0, x1, y1, x2, y2, u);
+    }
     for (var k = 0; k < passes.length; k++){
       ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + passes[k][1].toFixed(3) + ')';
       ctx.lineWidth   = passes[k][0];
