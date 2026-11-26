@@ -421,7 +421,7 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
 
     /* --- ствол: волнистая молния от центра --- */
     var mainBolt = boltPts(p0, c1, p2, e1x, e1y, e1z, e2x, e2y, e2z,
-                           nn.ph, t, bamp, 12);
+                           nn.ph, t, bamp, 20);
     strokeBolt(mainBolt, cosY, sinY, ct, st, cx, cy, R,
                hue, alpha, nn.w * ws, flick, 3);
 
