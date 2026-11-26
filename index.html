@@ -487,27 +487,24 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
       var px = Q1[0], py = Q1[1], tx = Q0[0], ty = Q0[1];
       var sdep = 0.45 + 0.55 * ((Q1[2] + 1) * 0.5);
 
-      /* хвост сигнала — растворяется в ноль */
-      var tg = ctx.createLinearGradient(tx, ty, px, py);
-      tg.addColorStop(0, 'hsla(' + hue + ',100%,75%,0)');
-      tg.addColorStop(1, 'hsla(' + hue + ',100%,88%,' + (alpha * 0.55 * sdep).toFixed(3) + ')');
-      ctx.strokeStyle = tg;
-      ctx.lineWidth   = nn.w * ws * 1.5;
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(px, py);
-      ctx.stroke();
+      /* хвост сигнала — три затухающих отрезка вместо градиента каждый кадр */
+      ctx.lineWidth = nn.w * ws * 1.5;
+      for (var ti = 0; ti < 3; ti++){
+        var t0f = ti / 3, t1f = (ti + 1) / 3;
+        ctx.strokeStyle = 'hsla(' + hue + ',100%,80%,'
+          + (alpha * 0.55 * sdep * (0.12 + 0.30 * ti)).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(tx + (px - tx) * t0f, ty + (py - ty) * t0f);
+        ctx.lineTo(tx + (px - tx) * t1f, ty + (py - ty) * t1f);
+        ctx.stroke();
+      }
 
-      /* сама точка — мягкое пятно, без граней */
+      /* сама точка — кэш-спрайт, без граней */
       var dr = (1.6 + vis * 2.6) * (0.78 + 0.30 * Math.sin(t * 6 + sg.u * 9)) * sdep;
-      var dg = ctx.createRadialGradient(px, py, 0, px, py, dr * 3.2);
-      dg.addColorStop(0,    'hsla(' + hue + ',100%,96%,' + Math.min(1, alpha * 1.6 * sdep).toFixed(3) + ')');
-      dg.addColorStop(0.35, 'hsla(' + hue + ',100%,82%,' + (alpha * 0.75 * sdep).toFixed(3) + ')');
-      dg.addColorStop(1,    'hsla(' + hue + ',100%,70%,0)');
-      ctx.fillStyle = dg;
-      ctx.beginPath();
-      ctx.arc(px, py, dr * 3.2, 0, 6.2832);
-      ctx.fill();
+      var dSize = dr * 6.4;
+      ctx.globalAlpha = Math.min(1, alpha * 1.6 * sdep);
+      ctx.drawImage(glowFor(nn.hue), px - dSize / 2, py - dSize / 2, dSize, dSize);
+      ctx.globalAlpha = 1;
     }
   }
 }
