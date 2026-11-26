@@ -278,7 +278,61 @@ function brCurve(s3, bd, bl, e2x, e2y, e2z, bend){
   return [e3, m3];
 }
 
-/* кривые-нейроны от центра: объёмный шар, мягкое свечение, без чётких граней */
+/* ============ МОЛНИИ ============ */
+/* точки вдоль кривой со смещением в стороны — волнистая молния.
+   концы закреплены, джиттер живой и меняется во времени */
+function boltPts(p0, c1, p2, e1x, e1y, e1z, e2x, e2y, e2z, seed, t, amp, nseg){
+  var arr = [];
+  for (var i = 0; i <= nseg; i++){
+    var u = i / nseg;
+    var q = qpt3(p0, c1, p2, u);
+    var env = Math.sin(u * Math.PI);                 // 0 на концах, 1 в середине
+    var a = amp * env;
+    var o1 = a * (Math.sin(u *  9.0 + seed *  3.1 + t *  5.5) * 0.55
+                + Math.sin(u * 21.0 + seed *  7.7 - t *  8.3) * 0.30
+                + Math.sin(u * 37.0 + seed * 11.3 + t * 12.7) * 0.15);
+    var o2 = a * (Math.sin(u * 13.0 + seed *  5.3 - t *  6.9) * 0.60
+                + Math.sin(u * 29.0 + seed *  9.1 + t * 10.1) * 0.40);
+    arr.push([
+      q[0] + e1x * o1 + e2x * o2,
+      q[1] + e1y * o1 + e2y * o2,
+      q[2] + e1z * o1 + e2z * o2
+    ]);
+  }
+  return arr;
+}
+/* точка на ломаной молнии по параметру u (0..1) */
+function boltAt(arr, u){
+  var n = arr.length - 1;
+  var f = Math.max(0, Math.min(0.9999, u)) * n;
+  var i = f | 0;
+  var k = f - i;
+  var a = arr[i], b = arr[i + 1] || arr[i];
+  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+}
+/* рисуем молнию: ломаная в 3D -> экран, проходы = мягкое свечение без граней */
+function strokeBolt(p3, cosY, sinY, ct, st, cx, cy, R, hue, alpha, w, flick, npass){
+  var n = p3.length;
+  var sx = [], sy = [];
+  for (var i = 0; i < n; i++){
+    var P = proj3(rot3(p3[i][0], p3[i][1], p3[i][2], cosY, sinY, ct, st), cx, cy, R);
+    sx.push(P[0]); sy.push(P[1]);
+  }
+  var widths = [w * 7.0, w * 3.0, w * 1.15];
+  var alphas = [alpha * 0.10, alpha * 0.28, alpha * 0.90];
+  var ligs   = [68, 76, 94];
+  var cnt = npass || 3;
+  for (var k = 0; k < cnt; k++){
+    ctx.strokeStyle = 'hsla(' + hue + ',100%,' + ligs[k] + '%,' + (alphas[k] * flick).toFixed(3) + ')';
+    ctx.lineWidth   = widths[k];
+    ctx.beginPath();
+    ctx.moveTo(sx[0], sy[0]);
+    for (var i2 = 1; i2 < n; i2++) ctx.lineTo(sx[i2], sy[i2]);
+    ctx.stroke();
+  }
+}
+
+/* кривые-нейроны от центра: объёмный шар, молнии, без чётких граней */
 function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineCap = 'round';
