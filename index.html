@@ -579,6 +579,12 @@ var startEl  = document.getElementById('start');
 
 /* ============ ЦИКЛ ============ */
 function frame(now){
+  /* один сбойный кадр не должен убивать всю анимацию */
+  try{ frameBody(now); }
+  catch(e){ if (window.console) console.error('frame:', e); }
+  requestAnimationFrame(frame);
+}
+function frameBody(now){
   var dt = Math.min((now - tPrev) / 1000, 0.05);
   tPrev = now;
   var t = (now - t0) / 1000;
