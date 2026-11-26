@@ -175,6 +175,32 @@ function makeRainbowGlow(size, a){
 var HALO = makeGlow(256, 60, 140, 255, 0.55);
 var CORE = makeRainbowGlow(256, 0.85);
 
+/* кэш-спрайты свечения для сигналов и синапсов.
+   Раньше градиент создавался заново КАЖДЫЙ кадр для КАЖДОЙ точки —
+   это ~110 новых градиентов на кадр и главная причина тормозов */
+function makeHueGlow(size, hue){
+  var c = document.createElement('canvas');
+  c.width = c.height = size;
+  var x = c.getContext('2d');
+  var g = x.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  g.addColorStop(0,    'hsla(' + hue + ',100%,96%,1)');
+  g.addColorStop(0.35, 'hsla(' + hue + ',100%,82%,0.75)');
+  g.addColorStop(1,    'hsla(' + hue + ',100%,70%,0)');
+  x.fillStyle = g;
+  x.fillRect(0, 0, size, size);
+  return c;
+}
+var HUE_MIN = 190, HUE_MAX = 340, HUE_N = 12;
+var GLOWS = [];
+for (var hh = 0; hh < HUE_N; hh++){
+  GLOWS.push(makeHueGlow(64, HUE_MIN + (HUE_MAX - HUE_MIN) * hh / (HUE_N - 1)));
+}
+function glowFor(hue){
+  var i = Math.round((hue - HUE_MIN) / (HUE_MAX - HUE_MIN) * (HUE_N - 1));
+  if (i < 0) i = 0; else if (i > HUE_N - 1) i = HUE_N - 1;
+  return GLOWS[i];
+}
+
 /* ============ НЕЙРОННЫЕ СВЯЗИ ============ */
 var NEURONS = [];
 var NEU_N = 16;
