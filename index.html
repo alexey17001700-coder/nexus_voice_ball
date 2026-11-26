@@ -321,8 +321,9 @@ function strokeBolt(p3, cosY, sinY, ct, st, cx, cy, R, hue, alpha, w, flick, npa
   var widths = [w * 7.0, w * 3.0, w * 1.15];
   var alphas = [alpha * 0.10, alpha * 0.28, alpha * 0.90];
   var ligs   = [68, 76, 94];
-  var cnt = npass || 3;
-  for (var k = 0; k < cnt; k++){
+  var cnt  = npass || 3;
+  var from = (cnt === 2) ? 1 : 0;      // 2 прохода = свечение + яркое ядро
+  for (var k = from; k < from + cnt; k++){
     ctx.strokeStyle = 'hsla(' + hue + ',100%,' + ligs[k] + '%,' + (alphas[k] * flick).toFixed(3) + ')';
     ctx.lineWidth   = widths[k];
     ctx.beginPath();
