@@ -267,24 +267,79 @@ function drawNeurons(cx, cy, R, t, vis){
     ctx.arc(x2, y2, sr * 3.4, 0, 6.2832);
     ctx.fill();
 
-    /* ответвление — как у нейрона */
-    if (nn.branch){
-      var ba  = a0 + nn.bend + (nn.bend >= 0 ? 0.58 : -0.58);
-      var bl  = L * 0.42;
-      var bx0 = cx + Math.cos(a0 + nn.bend * 0.72) * (r0 + L * 0.72);
-      var by0 = cy + Math.sin(a0 + nn.bend * 0.72) * (r0 + L * 0.72);
-      var bx2 = bx0 + Math.cos(ba) * bl;
-      var by2 = by0 + Math.sin(ba) * bl;
-      var mxx = (bx0 + bx2) / 2 + Math.sin(ba) * bl * 0.28;
-      var myy = (by0 + by2) / 2 - Math.cos(ba) * bl * 0.28;
+    /* --- ответвления: как у нейрона --- */
+    for (var bi = 0; bi < nn.brs.length; bi++){
+      var br  = nn.brs[bi];
+      var bp  = qpt(x0, y0, x1, y1, x2, y2, br.at);
+      var ba  = a0 + nn.bend * br.at + br.side * (0.62 + br.bend * 0.35);
+      var bl  = L * br.len;
+      var bx2 = bp[0] + Math.cos(ba) * bl;
+      var by2 = bp[1] + Math.sin(ba) * bl;
+      var mxx = (bp[0] + bx2) / 2 + Math.sin(ba) * bl * 0.30;
+      var myy = (bp[1] + by2) / 2 - Math.cos(ba) * bl * 0.30;
+
       for (var k2 = 0; k2 < passes.length; k2++){
-        ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + (passes[k2][1] * 0.70).toFixed(3) + ')';
-        ctx.lineWidth   = passes[k2][0] * 0.70;
+        ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + (passes[k2][1] * 0.72).toFixed(3) + ')';
+        ctx.lineWidth   = passes[k2][0] * 0.72;
         ctx.beginPath();
-        ctx.moveTo(bx0, by0);
+        ctx.moveTo(bp[0], bp[1]);
         ctx.quadraticCurveTo(mxx, myy, bx2, by2);
         ctx.stroke();
       }
+
+      /* ветка второго порядка — сеть становится гуще */
+      if (br.sub){
+        var sp2 = qpt(bp[0], bp[1], mxx, myy, bx2, by2, 0.55);
+        var sa  = ba + br.side * 0.85;
+        var sl  = bl * 0.52;
+        var sx2 = sp2[0] + Math.cos(sa) * sl;
+        var sy2 = sp2[1] + Math.sin(sa) * sl;
+        var smx = (sp2[0] + sx2) / 2 + Math.sin(sa) * sl * 0.30;
+        var smy = (sp2[1] + sy2) / 2 - Math.cos(sa) * sl * 0.30;
+        for (var k3 = 0; k3 < passes.length; k3++){
+          ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + (passes[k3][1] * 0.55).toFixed(3) + ')';
+          ctx.lineWidth   = passes[k3][0] * 0.55;
+          ctx.beginPath();
+          ctx.moveTo(sp2[0], sp2[1]);
+          ctx.quadraticCurveTo(smx, smy, sx2, sy2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    /* --- бегущие точки-сигналы по линиям --- */
+    for (var si = 0; si < nn.sig.length; si++){
+      var sg = nn.sig[si];
+      sg.u += sg.sp * 0.016 * (0.55 + vis * 1.10);   // от голоса ускоряются
+      if (sg.u > 1.14){ sg.u = -0.06; }              // ушла — стартует заново
+      if (sg.u < 0 || sg.u > 1) continue;
+
+      var pp  = sigPt(sg, sg.u);
+      var pp0 = sigPt(sg, Math.max(0, sg.u - 0.16));
+      var px  = pp[0],  py  = pp[1];
+      var tx  = pp0[0], ty  = pp0[1];
+
+      /* хвост сигнала — растворяется в ноль */
+      var tg = ctx.createLinearGradient(tx, ty, px, py);
+      tg.addColorStop(0, 'hsla(' + hue + ',100%,75%,0)');
+      tg.addColorStop(1, 'hsla(' + hue + ',100%,88%,' + (alpha * 0.55).toFixed(3) + ')');
+      ctx.strokeStyle = tg;
+      ctx.lineWidth   = nn.w * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+
+      /* сама точка — мягкое пятно, без граней */
+      var dr = (1.6 + vis * 2.6) * (0.78 + 0.30 * Math.sin(t * 6 + sg.u * 9));
+      var dg = ctx.createRadialGradient(px, py, 0, px, py, dr * 3.2);
+      dg.addColorStop(0,    'hsla(' + hue + ',100%,96%,' + Math.min(1, alpha * 1.6).toFixed(3) + ')');
+      dg.addColorStop(0.35, 'hsla(' + hue + ',100%,82%,' + (alpha * 0.75).toFixed(3) + ')');
+      dg.addColorStop(1,    'hsla(' + hue + ',100%,70%,0)');
+      ctx.fillStyle = dg;
+      ctx.beginPath();
+      ctx.arc(px, py, dr * 3.2, 0, 6.2832);
+      ctx.fill();
     }
   }
 }
