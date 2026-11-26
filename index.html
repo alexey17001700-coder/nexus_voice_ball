@@ -118,8 +118,41 @@ function makeGlow(size, r, g, b, a){
   x.fillRect(0, 0, size, size);
   return c;
 }
+
+/* разноцветное ядро: мягкие цветные пятна по кругу + белый центр */
+function makeRainbowGlow(size, a){
+  var c = document.createElement('canvas');
+  c.width = c.height = size;
+  var x = c.getContext('2d');
+  x.globalCompositeOperation = 'lighter';
+  var cx = size / 2, cy = size / 2;
+  var hues = [200, 232, 266, 300, 332, 24];
+  for (var i = 0; i < hues.length; i++){
+    var ang = (i / hues.length) * Math.PI * 2;
+    var ox = cx + Math.cos(ang) * size * 0.17;
+    var oy = cy + Math.sin(ang) * size * 0.17;
+    var rr = size * 0.34;
+    var g = x.createRadialGradient(ox, oy, 0, ox, oy, rr);
+    g.addColorStop(0,    'hsla(' + hues[i] + ',100%,62%,' + (a * 0.55) + ')');
+    g.addColorStop(0.45, 'hsla(' + hues[i] + ',100%,55%,' + (a * 0.22) + ')');
+    g.addColorStop(1,    'hsla(' + hues[i] + ',100%,50%,0)');
+    x.fillStyle = g;
+    x.beginPath();
+    x.arc(ox, oy, rr, 0, 6.2832);
+    x.fill();
+  }
+  var gc = x.createRadialGradient(cx, cy, 0, cx, cy, size * 0.30);
+  gc.addColorStop(0,   'rgba(255,255,255,' + (a * 0.85) + ')');
+  gc.addColorStop(0.4, 'rgba(220,240,255,' + (a * 0.30) + ')');
+  gc.addColorStop(1,   'rgba(200,230,255,0)');
+  x.fillStyle = gc;
+  x.beginPath();
+  x.arc(cx, cy, size * 0.30, 0, 6.2832);
+  x.fill();
+  return c;
+}
 var HALO = makeGlow(256, 60, 140, 255, 0.55);
-var CORE = makeGlow(256, 190, 235, 255, 0.85);
+var CORE = makeRainbowGlow(256, 0.85);
 
 /* ============ ЦВЕТА ПО ГЛУБИНЕ ============ */
 var BUCKETS = 8;
