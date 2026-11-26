@@ -141,7 +141,7 @@ function startMic(){
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       res(false); return;
     }
-    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:true}})
+    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:false, autoGainControl:true}})
     .then(function(s){
       stream = s;
       var AC = window.AudioContext || window.webkitAudioContext;
