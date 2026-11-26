@@ -332,6 +332,9 @@ function frame(now){
   ctx.restore();
   ctx.globalAlpha = 1;
 
+  /* --- кривые лучи от центра шара --- */
+  drawRays(t, cx, cy, R, vis);
+
   /* --- сброс корзин --- */
   for (var b2 = 0; b2 < BUCKETS; b2++){ bx[b2].length = 0; by[b2].length = 0; bs[b2].length = 0; }
 
