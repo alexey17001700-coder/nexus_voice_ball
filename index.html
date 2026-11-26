@@ -71,20 +71,41 @@ var cv = document.getElementById('c');
 var ctx = cv.getContext('2d', {alpha:true});
 var W = 0, H = 0, DPR = 1;
 
+/* бюджет пикселей: не даём канвасу разрастаться — иначе зависает
+   при сильном расширении окна и при зуме */
+var MAX_PIX = 1800000;      // ~1.8 млн точек рисования
+var MAX_DPR = 2;
+
 function resize(){
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
   var w = window.innerWidth  || document.documentElement.clientWidth  || 360;
   var h = window.innerHeight || document.documentElement.clientHeight || 640;
-  if(w < 50) w = 360;
-  if(h < 50) h = 640;
-  W = w; H = h;
-  cv.width  = Math.floor(w * DPR);
-  cv.height = Math.floor(h * DPR);
+  if (w < 50) w = 360;
+  if (h < 50) h = 640;
+
+  var dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+  /* пикселей слишком много — снижаем плотность, картинка мягче, но не виснет */
+  var need = w * h * dpr * dpr;
+  if (need > MAX_PIX) dpr = Math.max(1, dpr * Math.sqrt(MAX_PIX / need));
+
+  /* размер не изменился — не пересобираем канвас зря */
+  if (w === W && h === H && dpr === DPR && cv.width) return;
+
+  W = w; H = h; DPR = dpr;
+  cv.width  = Math.floor(w * dpr);
+  cv.height = Math.floor(h * dpr);
   cv.style.width  = w + 'px';
   cv.style.height = h + 'px';
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
-window.addEventListener('resize', resize);
+
+/* тормоз: при растягивании/зуме событие летит десятками в секунду —
+   пересобираем канвас один раз, а не на каждое событие */
+var rzT = 0;
+function resizeSoon(){
+  if (rzT) clearTimeout(rzT);
+  rzT = setTimeout(function(){ rzT = 0; resize(); }, 180);
+}
+window.addEventListener('resize', resizeSoon);
 window.addEventListener('orientationchange', function(){ setTimeout(resize, 250); });
 resize();
 
