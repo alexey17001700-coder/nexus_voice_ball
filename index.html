@@ -445,13 +445,10 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
 
     /* синапс на конце — мягкое пятно, растворяется в ноль */
     var sr = (1.5 + vis * 3.2) * pulse * dep;
-    var g = ctx.createRadialGradient(P2[0], P2[1], 0, P2[0], P2[1], sr * 3.4);
-    g.addColorStop(0, 'hsla(' + hue + ',100%,82%,' + (alpha * 0.90).toFixed(3) + ')');
-    g.addColorStop(1, 'hsla(' + hue + ',100%,70%,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(P2[0], P2[1], sr * 3.4, 0, 6.2832);
-    ctx.fill();
+    var sSize = sr * 6.8;
+    ctx.globalAlpha = Math.min(1, alpha * 0.90);
+    ctx.drawImage(glowFor(nn.hue), P2[0] - sSize / 2, P2[1] - sSize / 2, sSize, sSize);
+    ctx.globalAlpha = 1;
 
     /* --- ответвления: вырастают от голоса, тоже молнии --- */
     var bA = 0.35 + vis * 0.75;
