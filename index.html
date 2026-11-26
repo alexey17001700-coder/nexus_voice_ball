@@ -470,7 +470,7 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
         var bl2 = L * br.len * bg * 0.52;
         var bc2 = brCurve(s3b, bd2, bl2, e2x, e2y, e2z, br.bend);
         var subBolt = boltPts(s3b, bc2[1], bc2[0], e1x, e1y, e1z, e2x, e2y, e2z,
-                              br.bang + 2.1, t, bl2 * (0.12 + 0.18 * vis), 6);
+                              br.bang + 2.1, t, bl2 * (0.12 + 0.18 * vis), 9);
         strokeBolt(subBolt, cosY, sinY, ct, st, cx, cy, R,
                    hue, alpha * bA * 0.60, nn.w * ws * 0.55, flick, 2);
       }
