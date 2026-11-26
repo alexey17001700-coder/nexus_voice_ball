@@ -384,37 +384,37 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
     var alpha = (0.09 + vis * 0.40) * pulse * dep;
     var hue   = nn.hue.toFixed(0);
 
-    /* три прохода: широкий-тусклый -> узкий-яркий = мягкое свечение */
-    var passes = [
-      [nn.w * ws * 6.0, alpha * 0.10],
-      [nn.w * ws * 2.8, alpha * 0.26],
-      [nn.w * ws * 1.1, alpha * 0.85]
-    ];
+    /* мерцание молнии: своё у каждой линии + редкие вспышки */
+    var flick = 0.62 + 0.38 * Math.abs(Math.sin(t * 13.0 + nn.ph * 5.0));
+    if (Math.sin(t * 2.7 + nn.ph * 3.3) > 0.94) flick = 1.45;
 
     /* ответвления растут от голоса/шума */
     var bg = 0.12 + vis * 1.15;
+    var bamp = L * (0.10 + 0.16 * vis);        // амплитуда волны молнии
+
+    /* --- ствол: волнистая молния от центра --- */
+    var mainBolt = boltPts(p0, c1, p2, e1x, e1y, e1z, e2x, e2y, e2z,
+                           nn.ph, t, bamp, 12);
+    strokeBolt(mainBolt, cosY, sinY, ct, st, cx, cy, R,
+               hue, alpha, nn.w * ws, flick, 3);
+
+    /* молнии ответвлений — считаем заранее, чтобы сигналы шли по ним */
+    var brBolts = [];
+    for (var bi0 = 0; bi0 < nn.brs.length; bi0++){
+      var b0 = nn.brs[bi0];
+      var s30 = qpt3(p0, c1, p2, b0.at);
+      var bd0 = brDir(b0.bang, b0.side, dx, dy, dz, e1x, e1y, e1z, e2x, e2y, e2z);
+      var bl0 = L * b0.len * bg;
+      var bc0 = brCurve(s30, bd0, bl0, e2x, e2y, e2z, b0.bend);
+      brBolts.push(boltPts(s30, bc0[1], bc0[0], e1x, e1y, e1z, e2x, e2y, e2z,
+                           b0.bang, t, bl0 * (0.12 + 0.18 * vis), 8));
+    }
 
     /* точка сигнала в 3D: на стволе или на ответвлении */
     var sigPt3 = function(sg, u){
-      if (sg.br >= 0 && nn.brs[sg.br]){
-        var b0 = nn.brs[sg.br];
-        var s3 = qpt3(p0, c1, p2, b0.at);
-        var bd = brDir(b0.bang, b0.side, dx, dy, dz, e1x, e1y, e1z, e2x, e2y, e2z);
-        var bl = L * b0.len * bg;
-        var bc = brCurve(s3, bd, bl, e2x, e2y, e2z, b0.bend);
-        return qpt3(s3, bc[1], bc[0], u);
-      }
-      return qpt3(p0, c1, p2, u);
+      if (sg.br >= 0 && brBolts[sg.br]) return boltAt(brBolts[sg.br], u);
+      return boltAt(mainBolt, u);
     };
-
-    for (var k = 0; k < passes.length; k++){
-      ctx.strokeStyle = 'hsla(' + hue + ',100%,68%,' + passes[k][1].toFixed(3) + ')';
-      ctx.lineWidth   = passes[k][0];
-      ctx.beginPath();
-      ctx.moveTo(P0[0], P0[1]);
-      ctx.quadraticCurveTo(P1[0], P1[1], P2[0], P2[1]);
-      ctx.stroke();
-    }
 
     /* синапс на конце — мягкое пятно, растворяется в ноль */
     var sr = (1.5 + vis * 3.2) * pulse * dep;
