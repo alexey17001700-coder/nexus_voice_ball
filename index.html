@@ -564,8 +564,8 @@ function frame(now){
   ctx.restore();
   ctx.globalAlpha = 1;
 
-  /* --- нейронные связи от центра шара --- */
-  drawNeurons(cx, cy, R, t, vis);
+  /* --- нейронные связи от центра шара (объёмные, в 3D) --- */
+  drawNeurons(cx, cy, R, t, vis, Math.cos(rotY), Math.sin(rotY), ct, st);
 
   /* --- сброс корзин --- */
   for (var b2 = 0; b2 < BUCKETS; b2++){ bx[b2].length = 0; by[b2].length = 0; bs[b2].length = 0; }
