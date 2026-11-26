@@ -214,13 +214,47 @@ for (var n = 0; n < NEU_N; n++){
   });
 }
 
-/* точка на квадратичной кривой Безье (u = 0..1) */
-function qpt(x0, y0, x1, y1, x2, y2, u){
+/* ============ 3D-МАТЕМАТИКА ============ */
+/* поворот точки вокруг Y, затем наклон вокруг X */
+function rot3(x, y, z, cosY, sinY, ct, st){
+  var x1 =  x * cosY + z * sinY;
+  var z1 = -x * sinY + z * cosY;
+  var y2 = y * ct - z1 * st;
+  var z2 = y * st + z1 * ct;
+  return [x1, y2, z2];
+}
+/* проекция на экран: дальние короче — отсюда объём */
+function proj3(v, cx, cy, R){
+  var persp = 1 + v[2] * 0.26;
+  return [cx + v[0] * R * persp, cy + v[1] * R * persp, v[2], persp];
+}
+/* точка на квадратичной кривой Безье в 3D (u = 0..1) */
+function qpt3(a, b, c, u){
   var m = 1 - u;
   return [
-    m * m * x0 + 2 * m * u * x1 + u * u * x2,
-    m * m * y0 + 2 * m * u * y1 + u * u * y2
+    m * m * a[0] + 2 * m * u * b[0] + u * u * c[0],
+    m * m * a[1] + 2 * m * u * b[1] + u * u * c[1],
+    m * m * a[2] + 2 * m * u * b[2] + u * u * c[2]
   ];
+}
+/* направление ответвления в 3D */
+function brDir(bang, side, dx, dy, dz, e1x, e1y, e1z, e2x, e2y, e2z){
+  var cb = Math.cos(bang), sb = Math.sin(bang);
+  var vx = dx * 0.30 + (e1x * cb + e2x * sb) * side;
+  var vy = dy * 0.30 + (e1y * cb + e2y * sb) * side;
+  var vz = dz * 0.30 + (e1z * cb + e2z * sb) * side;
+  var vl = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
+  return [vx / vl, vy / vl, vz / vl];
+}
+/* кривая ответвления: [конец, контрольная точка] */
+function brCurve(s3, bd, bl, e2x, e2y, e2z, bend){
+  var e3 = [s3[0] + bd[0] * bl, s3[1] + bd[1] * bl, s3[2] + bd[2] * bl];
+  var m3 = [
+    (s3[0] + e3[0]) / 2 + e2x * bl * 0.35 * bend,
+    (s3[1] + e3[1]) / 2 + e2y * bl * 0.35 * bend,
+    (s3[2] + e3[2]) / 2 + e2z * bl * 0.35 * bend
+  ];
+  return [e3, m3];
 }
 
 /* кривые-нейроны от центра: мягкое свечение, без чётких граней */
