@@ -277,10 +277,14 @@ function frame(now){
   ctx.globalAlpha = 0.30 + vis * 0.35;
   ctx.drawImage(HALO, cx - haloSize/2, cy - haloSize/2, haloSize, haloSize);
 
-  /* --- ядро --- */
+  /* --- ядро: разноцветное свечение, медленно вращается --- */
   var coreSize = R * 1.35 * (1 + vis * 0.30);
   ctx.globalAlpha = 0.22 + vis * 0.55;
-  ctx.drawImage(CORE, cx - coreSize/2, cy - coreSize/2, coreSize, coreSize);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(t * 0.35);
+  ctx.drawImage(CORE, -coreSize/2, -coreSize/2, coreSize, coreSize);
+  ctx.restore();
   ctx.globalAlpha = 1;
 
   /* --- сброс корзин --- */
