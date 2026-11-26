@@ -434,7 +434,7 @@ function drawNeurons(cx, cy, R, t, vis, cosY, sinY, ct, st){
       var bl0 = L * b0.len * bg;
       var bc0 = brCurve(s30, bd0, bl0, e2x, e2y, e2z, b0.bend);
       brBolts.push(boltPts(s30, bc0[1], bc0[0], e1x, e1y, e1z, e2x, e2y, e2z,
-                           b0.bang, t, bl0 * (0.12 + 0.18 * vis), 8));
+                           b0.bang, t, bl0 * (0.12 + 0.18 * vis), 12));
     }
 
     /* точка сигнала в 3D: на стволе или на ответвлении */
